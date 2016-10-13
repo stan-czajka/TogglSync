@@ -24,30 +24,45 @@ class Config:
 			raise Exception('File {} does not exist. Check out config.yml.example and create config.yml'.format(path))
 
 		with open(path) as input:
-			deserialized = load(input)
+			return Config.fromYml(input)
 
-			if 'toggl' not in deserialized:
-				raise Exception('"toggl" element not found in config')
+	@classmethod
+	def fromYml(cls, yml):
+		deserialized = load(yml)
 
-			toggl = deserialized['toggl']
+		if 'toggl' not in deserialized:
+			raise Exception('"toggl" element not found in config')
 
-			if 'redmine' not in deserialized:
-				raise Exception('"redmine" element not found in config')
+		toggl = deserialized['toggl']
 
-			redmine = deserialized['redmine']
+		if 'redmine' not in deserialized:
+			raise Exception('"redmine" element not found in config')
 
-			if 'mattermost' in deserialized:
-				mattermost = deserialized['mattermost']
+		redmine = deserialized['redmine']
+
+		if 'mattermost' in deserialized:
+			if isinstance(deserialized['mattermost'], str):
+				print('Warning: old config format')
+
+				mattermost = {
+					'url': deserialized['mattermost'],
+				}
 			else:
-				mattermost = None
+				mattermost = deserialized['mattermost']
 
-			if 'entries' not in deserialized:
-				raise Exception('"entries" element not found in config')
+				if 'url' not in mattermost:
+					raise Exception('Expected "url" param in "mattermost" section')
 
-			entries = []
+		else:
+			mattermost = None
 
-			for entry in deserialized['entries']:
-				entries.append(Entry(**entry))
+		if 'entries' not in deserialized:
+			raise Exception('"entries" element not found in config')
+
+		entries = []
+
+		for entry in deserialized['entries']:
+			entries.append(Entry(**entry))
 
 		return cls(toggl, redmine, entries, mattermost)
 
