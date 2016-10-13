@@ -7,8 +7,26 @@ from toggltoredmine.config import Config
 from toggltoredmine.toggl import TogglHelper
 
 class RequestsRunner:
+    """
+    Class for sending requests at particular URL
+    https://docs.mattermost.com/developer/webhooks-incoming.html
+    """
     def send(self, url, data):
-        requests.post(url, data=json.dumps(data))
+        resp = requests.post(url, data=json.dumps(data))
+
+        if resp.status_code != 200:
+            try:
+                j = resp.json()
+
+                message = (j['message'] + '\n') if 'message' in j else ''
+                message = j['detailed_error'] if 'detailed_error' in j else ''
+
+                if len(message) == 0:
+                    message = resp.text
+            except:
+                message = resp.text
+
+            raise Exception('Error sending to mattermost:\n{}'.format(message))
 
 class MattermostNotifier:
     def __init__(self, url, runner, simulation=False):

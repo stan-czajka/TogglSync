@@ -1,8 +1,9 @@
 import unittest
-from unittest.mock import MagicMock
+import requests
+from unittest.mock import MagicMock, patch
 from datetime import datetime
 
-from toggltoredmine.mattermost import MattermostNotifier
+from toggltoredmine.mattermost import MattermostNotifier, RequestsRunner
 from toggltoredmine.toggl import TogglEntry
 
 class MattermostNotifierTests(unittest.TestCase):
@@ -252,3 +253,47 @@ It seems that more than 75% of your today work had redmine id! So .. you rock :r
 '''
 
         runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+
+class RequestsRunnerTests(unittest.TestCase):
+    class FakeResponse:
+        def __init__(self, text, status_code, jsonObject):
+            self.text = text
+            self.status_code = status_code
+            self.jsonObject = jsonObject
+
+        def json(self):
+            return self.jsonObject
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('', 200, None))
+    def test_send_success(self, post_function):
+        runner = RequestsRunner()
+        runner.send('http://test.com', {'x':'y'})
+
+        post_function.assert_called_with('http://test.com', data='{"x": "y"}')
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('Sth went wrong', 500, { 'message': 'Sth went wrong' }))
+    def test_send_error(self, post_function):
+        runner = RequestsRunner()
+
+        try:
+            runner.send('http://test.com', {'x':'y'})
+            self.fail('expected exception')
+        except Exception as exc:
+            self.assertEquals('''Error sending to mattermost:
+Sth went wrong''', str(exc))
+
+        post_function.assert_called_with('http://test.com', data='{"x": "y"}')
+
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('Something went wrong...', 500, None))
+    def test_send_error_no_json(self, post_function):
+        runner = RequestsRunner()
+
+        try:
+            runner.send('http://test.com', {'x':'y'})
+            self.fail('expected exception')
+        except Exception as exc:
+            self.assertEquals('''Error sending to mattermost:
+Something went wrong...''', str(exc))
+
+        post_function.assert_called_with('http://test.com', data='{"x": "y"}')
