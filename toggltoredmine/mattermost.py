@@ -103,7 +103,6 @@ class MattermostNotifier:
         """Filters given entries according to taskId"""
         return [e for e in entries if e.taskId != None]
 
-
 if __name__ == '__main__':
     parser = ArgumentParser(description='Sends notification to mattermost')
 
