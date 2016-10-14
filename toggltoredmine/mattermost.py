@@ -11,8 +11,29 @@ class RequestsRunner:
     Class for sending requests at particular URL
     https://docs.mattermost.com/developer/webhooks-incoming.html
     """
-    def send(self, url, data):
-        resp = requests.post(url, data=json.dumps(data))
+    def __init__(self, url, channel=None, username=None):
+        self.url = url
+        self.channel = channel
+        self.username = username
+
+    @classmethod
+    def fromConfig(cls, mattermostConfig):
+        return cls(mattermostConfig['url'],
+            mattermostConfig['channel'] if 'channel' in mattermostConfig else None,
+            'toggl2redmine')
+
+    def send(self, text):
+        data = { 'text': text }
+
+        if self.username:
+            data['username'] = self.username
+            print('Username: {}'.format(self.username))
+
+        if self.channel:
+            data['channel'] = self.channel
+            print('Channel: {}'.format(self.channel))
+
+        resp = requests.post(self.url, data=json.dumps(data, sort_keys=True))
 
         if resp.status_code != 200:
             try:
@@ -29,8 +50,7 @@ class RequestsRunner:
             raise Exception('Error sending to mattermost:\n{}'.format(message))
 
 class MattermostNotifier:
-    def __init__(self, url, runner, simulation=False):
-        self.url = url
+    def __init__(self, runner, simulation=False):
         self.lines = []
         self.runner = runner
         self.simulation = simulation
@@ -84,7 +104,6 @@ class MattermostNotifier:
 
     def send(self):
         text = '\n'.join(self.lines)
-        data = { 'text': text, 'username': 'toggl2redmine' }
 
         if self.simulation:
             print('Message to mattermost:')
@@ -92,7 +111,7 @@ class MattermostNotifier:
             print(text)
             print('-----------------------------------')
         else:
-            self.runner.send(self.url, data)
+            self.runner.send(data)
             print('Sent to mattermost:')
             print(text)
 
@@ -134,7 +153,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    notifier = MattermostNotifier(config.mattermost, RequestsRunner(), args.simulation)
+    runner = RequestsRunner.fromConfig(config.mattermost)
+
+    notifier = MattermostNotifier(runner, args.simulation)
     notifier.append(args.message)
     notifier.send()
 

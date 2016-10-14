@@ -168,7 +168,12 @@ if __name__ == '__main__':
     config = Config.fromFile()
 
     print('Found api key pairs: {}'.format(len(config.entries)))
-    mattermost = MattermostNotifier(config.mattermost, RequestsRunner(), args.simulation) if config.mattermost != None else None
+
+    mattermost = None
+
+    if config.mattermost:
+        runner = RequestsRunner.fromConfig(config.mattermost)
+        mattermost = MattermostNotifier(runner, args.simulation)
 
     for apiKeys in config.entries:
         toggl = TogglHelper(config.toggl, apiKeys.toggl)

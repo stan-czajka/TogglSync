@@ -1,0 +1,5 @@
+# Toggl URL
+toggl: "https://www.toggl.com/api/v8/"
+
+# Redmine url
+redmine: "http://redmine.url/"

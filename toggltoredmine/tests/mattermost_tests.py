@@ -14,16 +14,16 @@ class MattermostNotifierTests(unittest.TestCase):
     def test_send(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
         mattermost.append('test')
         mattermost.send()
 
-        runner.send.assert_called_with('http://dummy', {'text': 'test', 'username': 'toggl2redmine'})
+        runner.send.assert_called_with('test')
 
     def test_append_entries(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
         mattermost.appendEntries([])
         mattermost.send()
 
@@ -31,12 +31,12 @@ class MattermostNotifierTests(unittest.TestCase):
 Altogether you did not work today at all :cry:. Hope you ok?
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_append_entries_one(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
         mattermost.appendEntries([TogglEntry(None, 60, self.today, 777, '')])
         mattermost.send()
 
@@ -46,12 +46,12 @@ Huh, not many entries. It means, you did only a couple of tasks, but did it righ
 Ugh. Less than 25% of your work had redmine id. Not so good :cry:.
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_append_entries_two_one_with_redmine(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
         mattermost.appendEntries([
             TogglEntry(None, 60, self.today, 776, ''),
             TogglEntry(None, 60, self.today, 777, '#666 Hardwork')
@@ -64,12 +64,12 @@ Huh, not many entries. It means, you did only a couple of tasks, but did it righ
 It's gooood. A lot of today work had redmine id! Congrats :sunglasses:.
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_append_entries_two_one_with_redmine_4_hours(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
         mattermost.appendEntries([
             TogglEntry(None, 4 * 3123, self.today, 777, '#666 Hardwork')
         ])
@@ -81,12 +81,12 @@ Huh, not many entries. It means, you did only a couple of tasks, but did it righ
 It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_append_entries_10_entries(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         e = TogglEntry(None, 4 * 3600, self.today, 777, '#666 Hardwork')
         l = []
@@ -103,12 +103,12 @@ Average day. Not too few, not too many entries :sunglasses:.
 It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_append_entries_50_entries(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         e = TogglEntry(None, 60, self.today, 777, '#666 Hardwork')
         l = []
@@ -125,12 +125,12 @@ You did 50 entries like a boss :smirk: :boom:!
 It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_append_entries_3_entries_1_redmine(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         l = [
             TogglEntry(None, 60, self.today, 777, '#666 Hardwork'),
@@ -147,7 +147,7 @@ Huh, not many entries. It means, you did only a couple of tasks, but did it righ
 Almost 50% of your today work had redmine id :blush:.
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_formatSeconds_less_60(self):
         self.assertEquals('45 s', MattermostNotifier.formatSeconds(45))
@@ -266,34 +266,53 @@ class RequestsRunnerTests(unittest.TestCase):
 
     @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('', 200, None))
     def test_send_success(self, post_function):
-        runner = RequestsRunner()
-        runner.send('http://test.com', {'x':'y'})
+        runner = RequestsRunner('http://test.com')
+        runner.send('y')
 
-        post_function.assert_called_with('http://test.com', data='{"x": "y"}')
+        post_function.assert_called_with('http://test.com', data='{"text": "y"}')
 
     @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('Sth went wrong', 500, { 'message': 'Sth went wrong' }))
     def test_send_error(self, post_function):
-        runner = RequestsRunner()
+        runner = RequestsRunner('http://test.com')
 
         try:
-            runner.send('http://test.com', {'x':'y'})
+            runner.send('y')
             self.fail('expected exception')
         except Exception as exc:
             self.assertEquals('''Error sending to mattermost:
 Sth went wrong''', str(exc))
 
-        post_function.assert_called_with('http://test.com', data='{"x": "y"}')
-
+        post_function.assert_called_with('http://test.com', data='{"text": "y"}')
 
     @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('Something went wrong...', 500, None))
     def test_send_error_no_json(self, post_function):
-        runner = RequestsRunner()
+        runner = RequestsRunner('http://test.com')
 
         try:
-            runner.send('http://test.com', {'x':'y'})
+            runner.send('x')
             self.fail('expected exception')
         except Exception as exc:
             self.assertEquals('''Error sending to mattermost:
 Something went wrong...''', str(exc))
 
-        post_function.assert_called_with('http://test.com', data='{"x": "y"}')
+        post_function.assert_called_with('http://test.com', data='{"text": "x"}')
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('', 200, None))
+    def test_send_success_with_channel(self, post_function):
+        runner = RequestsRunner('http://test.com', '#me')
+        runner.send('x')
+
+        post_function.assert_called_with('http://test.com', data='{"channel": "#me", "text": "x"}')
+
+    def test_fromConfig(self):
+        runner = RequestsRunner.fromConfig({ 'url': 'https://xxx' })
+        self.assertEquals('https://xxx', runner.url)
+        self.assertIsNone(runner.channel)
+        self.assertEquals('toggl2redmine', runner.username)
+
+    def test_fromConfig_with_channel(self):
+        runner = RequestsRunner.fromConfig({ 'url': 'https://xxx', 'channel': '#chan' })
+
+        self.assertEquals('https://xxx', runner.url)
+        self.assertEquals('toggl2redmine', runner.username)
+        self.assertEquals('#chan', runner.channel)
