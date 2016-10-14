@@ -27,9 +27,11 @@ class RequestsRunner:
 
         if self.username:
             data['username'] = self.username
+            print('Username: {}'.format(self.username))
 
         if self.channel:
             data['channel'] = self.channel
+            print('Channel: {}'.format(self.channel))
 
         resp = requests.post(self.url, data=json.dumps(data, sort_keys=True))
 
