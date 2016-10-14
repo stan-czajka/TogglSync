@@ -18,21 +18,15 @@ Requirements
 * Toggl account and api key
 * Redmine URL
 * Redmine account and api key
-* [Optional] Mattermost incoming webhook url
+* [Optional] *Mattermost* incoming webhook url
 
 How to run
 ---
 
-If you don't have *python 3* installed, go to **Releases** and download executable. It is the simplest way to run `toggl2redmine`.
-
-If you have *python 3* installed you should prepare once a new virtual environment and download `pybuilder` (see Howto). Then always when you want to run *synchronizer* you should firstly activate environment and install dependencies:
-
-```
-.env\Scripts\activate.bat
-pip install pybuilder
-pyb install_dependencies
-python -m toggltoredmine.synchronizer
-```
+- Download pack from *releases* tab.
+- Unpack ZIP package
+- Copy `config.yml.example` to `config.yml`
+- Fill `config.yml`
 
 Usage
 ---
@@ -55,7 +49,14 @@ Run synchronizer for last day in simulation mode:
 synchronizer -d 1 -s
 ```
 
-Howto
+Mattermost
+---
+
+After synchronization a summary may be send to *mattermost*. In order to send notification you have to fill mattermost [incoming webhook](https://docs.mattermost.com/developer/webhooks-incoming.html) url in `config.yml`. After that *synchronizer* will send an short summary to mattermost.
+
+You can also request *synchronizer* to post a message to particular channel. For that you have to fill `channel` key in `config.yml`. If you want to receive a message on default incoming webhook channel, remove this key from `config.yml`.
+
+Development
 ---
 
 **Prepare development environemnt**
@@ -76,7 +77,7 @@ nosetests -v
 **Run tests with coverage**
 
 ```
-pyb tests
+nosetests --cover-html --with-coverage
 ```
 
 **Prepare executable**
