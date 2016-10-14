@@ -172,7 +172,7 @@ if __name__ == '__main__':
     mattermost = None
 
     if config.mattermost:
-        runner = RequestsRunner(config.mattermost['url'])
+        runner = RequestsRunner.fromConfig(config.mattermost)
         mattermost = MattermostNotifier(runner, args.simulation)
 
     for apiKeys in config.entries:
