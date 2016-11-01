@@ -62,10 +62,12 @@ class MattermostNotifier:
         self.append('Sync: {} day{}'.format(days, 's' if days != 1 else ''))
 
     def appendEntries(self, allEntries):
-        filteredAllEntries = TogglHelper.filterRedmineEntries(allEntries)
+        self.append('Found entries in toggl: **{}** (filtered: **{}**)'.format(len(allEntries), len(TogglHelper.filterRedmineEntries(allEntries))))
 
-        self.append('Found entries in toggl: **{}** (filtered: **{}**)'.format(len(allEntries), len(filteredAllEntries)))
+        self.__append_summary(allEntries);
+        self.append('')
 
+    def __append_summary(self, allEntries):
         entries = MattermostNotifier.filterToday(allEntries)
 
         timeSum = sum([e.duration for e in entries])
@@ -99,8 +101,6 @@ class MattermostNotifier:
                 self.append("It's gooood. A lot of today work had redmine id! Congrats :sunglasses:.")
             else:
                 self.append('It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!')
-
-        self.append('')
 
     def send(self):
         text = '\n'.join(self.lines)
