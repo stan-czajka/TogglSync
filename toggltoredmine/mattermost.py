@@ -111,7 +111,7 @@ class MattermostNotifier:
             print(text)
             print('-----------------------------------')
         else:
-            self.runner.send(data)
+            self.runner.send(text)
             print('Sent to mattermost:')
             print(text)
 
