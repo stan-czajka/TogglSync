@@ -21,7 +21,7 @@ class TogglEntry:
 		self.description = description
 
 		self.taskId = TogglEntry.findTaskId(self.description);
-		self.hours = round(self.duration / 3600.0, 2)
+		self.hours = TogglEntry.secondsToHours(self.duration)
 
 	def toDict(self):
 		return {
@@ -38,6 +38,10 @@ class TogglEntry:
 			entry['start'],
 			entry['id'],
 			entry['description'] if 'description' in entry else '')
+
+	@staticmethod
+	def secondsToHours(seconds):
+		return round(seconds / 3600.0, 2)
 
 	@staticmethod
 	def findTaskId(desc):
