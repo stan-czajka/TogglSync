@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 
 from toggltoredmine.config import Config
-from toggltoredmine.toggl import TogglHelper
+from toggltoredmine.toggl import TogglHelper, TogglEntry
 
 class RequestsRunner:
     """
@@ -67,6 +67,8 @@ class MattermostNotifier:
         self.__append_summary(allEntries);
         self.append('')
 
+        self.__append_redmine_summary(allEntries)
+
     def __append_summary(self, allEntries):
         entries = MattermostNotifier.filterToday(allEntries)
 
@@ -101,6 +103,30 @@ class MattermostNotifier:
                 self.append("It's gooood. A lot of today work had redmine id! Congrats :sunglasses:.")
             else:
                 self.append('It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!')
+
+    def __append_redmine_summary(self, allEntries):
+        redmineEntries = TogglHelper.filterRedmineEntries(allEntries)
+
+        if len(redmineEntries) > 0:
+            self.append('---')
+            self.append('**Redmine summary**')
+
+            redmineIssuesSums = {}
+
+            for e in redmineEntries:
+                if e.taskId not in redmineIssuesSums:
+                    redmineIssuesSums[e.taskId] = 0
+
+                redmineIssuesSums[e.taskId] += e.duration
+
+            longestTasks = sorted(redmineIssuesSums, key=lambda id: -redmineIssuesSums[id])[:3]
+
+            self.append('You spent most time on:')
+
+            for id in longestTasks:
+                self.append('- #{}: {} h'.format(id, TogglEntry.secondsToHours(redmineIssuesSums[id])))
+
+            self.append('')
 
     def send(self):
         text = '\n'.join(self.lines)

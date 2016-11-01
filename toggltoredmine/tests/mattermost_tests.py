@@ -62,6 +62,11 @@ Ugh. Less than 25% of your work had redmine id. Not so good :cry:.
 You worked almost less than 4 hours today (exactly 2 m), not every day is a perfect day, right? :smirk:.
 Huh, not many entries. It means, you did only a couple of tasks, but did it right .. right? :open_mouth:
 It's gooood. A lot of today work had redmine id! Congrats :sunglasses:.
+
+---
+**Redmine summary**
+You spent most time on:
+- #666: 0.02 h
 '''
 
         runner.send.assert_called_with(text)
@@ -242,7 +247,88 @@ Almost 50% of your today work had redmine id :blush:.'''
 You worked almost less than 4 hours today (exactly 1.00 h), not every day is a perfect day, right? :smirk:.
 Huh, not many entries. It means, you did only a couple of tasks, but did it right .. right? :open_mouth:
 It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!
+
+---
+**Redmine summary**
+You spent most time on:
+- #333: 1.0 h
 '''
+
+        runner.send.assert_called_with(text)
+
+    def test_append_redmine_summary(self):
+        runner = MagicMock()
+
+        mattermost = MattermostNotifier(runner)
+
+        l = [
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+
+            TogglEntry(None, 0.5 * 3600, self.today, 778, 'test #334'),
+
+            TogglEntry(None, 2 * 3600, self.today, 778, 'test #335'),
+        ]
+
+        mattermost._MattermostNotifier__append_redmine_summary(l)
+        mattermost.send()
+
+        text = '''---
+**Redmine summary**
+You spent most time on:
+- #333: 4.0 h
+- #335: 2.0 h
+- #334: 0.5 h
+'''
+
+        runner.send.assert_called_with(text)
+
+    def test_append_redmine_summary_only_first_3(self):
+        runner = MagicMock()
+
+        mattermost = MattermostNotifier(runner)
+
+        l = [
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+            TogglEntry(None, 3600, self.today, 777, 'test #333'),
+
+            TogglEntry(None, 0.5 * 3600, self.today, 778, 'test #334'),
+
+            TogglEntry(None, 2 * 3600, self.today, 778, 'test #335'),
+
+            TogglEntry(None, 10 * 3600, self.today, 778, 'test #400'),
+        ]
+
+        mattermost._MattermostNotifier__append_redmine_summary(l)
+        mattermost.send()
+
+        text = '''---
+**Redmine summary**
+You spent most time on:
+- #400: 10.0 h
+- #333: 4.0 h
+- #335: 2.0 h
+'''
+
+        runner.send.assert_called_with(text)
+
+    def test_append_redmine_summary_no_entries_no_summary(self):
+        runner = MagicMock()
+
+        mattermost = MattermostNotifier(runner)
+
+        l = [
+            TogglEntry(None, 3600, self.today, 777, 'test 333')
+        ]
+
+        mattermost._MattermostNotifier__append_redmine_summary(l)
+        mattermost.send()
+
+        text = ''
 
         runner.send.assert_called_with(text)
 
