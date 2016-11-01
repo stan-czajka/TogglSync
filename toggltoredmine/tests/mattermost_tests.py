@@ -191,38 +191,38 @@ Almost 50% of your today work had redmine id :blush:.
     def test_appendDuration_one_day(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         mattermost.appendDuration(1)
         mattermost.send()
 
         text = '''Sync: 1 day'''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_appendDuration_two_days(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         mattermost.appendDuration(2)
         mattermost.send()
 
         text = '''Sync: 2 days'''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_appendDuration_zero_days(self):
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         mattermost.appendDuration(0)
         mattermost.send()
 
         text = '''Sync: 0 days'''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
     def test_ignore_negative_duration(self):
         """
@@ -236,7 +236,7 @@ Almost 50% of your today work had redmine id :blush:.
 
         runner = MagicMock()
 
-        mattermost = MattermostNotifier('http://dummy', runner)
+        mattermost = MattermostNotifier(runner)
 
         l = [
             TogglEntry(None, 3600, self.today, 777, 'test #333'),
@@ -252,7 +252,7 @@ Huh, not many entries. It means, you did only a couple of tasks, but did it righ
 It seems that more than 75% of your today work had redmine id! So .. you rock :rocket:!
 '''
 
-        runner.send.assert_called_with('http://dummy', {'text': text, 'username': 'toggl2redmine'})
+        runner.send.assert_called_with(text)
 
 class RequestsRunnerTests(unittest.TestCase):
     class FakeResponse:
