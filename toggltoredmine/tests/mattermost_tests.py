@@ -1,6 +1,6 @@
 import unittest
 import requests
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 from datetime import datetime
 
 from toggltoredmine.mattermost import MattermostNotifier, RequestsRunner
@@ -394,3 +394,38 @@ Something went wrong...''', str(exc))
         self.assertEquals('https://xxx', runner.url)
         self.assertEquals('toggl2redmine', runner.username)
         self.assertEquals('#chan', runner.channel)
+
+    def test_fromConfig_with_channels(self):
+        runner = RequestsRunner.fromConfig({ 'url': 'https://xxx', 'channel': ['#chan', '#chan2'] })
+
+        self.assertEquals('https://xxx', runner.url)
+        self.assertEquals('toggl2redmine', runner.username)
+        self.assertEquals(['#chan', '#chan2'], runner.channel)
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('', 200, None))
+    def test_send_success_one_channel(self, post_function):
+        runner = RequestsRunner('http://test.com', '#chan')
+        runner.send('y')
+
+        post_function.assert_called_with('http://test.com', data='{"channel": "#chan", "text": "y"}')
+
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('', 200, None))
+    def test_send_success_multiple_channels(self, post_function):
+        runner = RequestsRunner('http://test.com', ['#chan', '#chan2'])
+        runner.send('y')
+
+        post_function.assert_has_calls([
+            call('http://test.com', data='{"channel": "#chan", "text": "y"}'),
+            call('http://test.com', data='{"channel": "#chan2", "text": "y"}')
+        ])
+
+    @patch('requests.post', side_effect=lambda url, data: RequestsRunnerTests.FakeResponse('', 200, None))
+    def test_send_to_default_and_particular(self, post_function):
+        runner = RequestsRunner('http://test.com', ['', '#chan2'])
+        runner.send('y')
+
+        post_function.assert_has_calls([
+            call('http://test.com', data='{"text": "y"}'),
+            call('http://test.com', data='{"channel": "#chan2", "text": "y"}')
+        ])

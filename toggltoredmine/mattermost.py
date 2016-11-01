@@ -30,9 +30,23 @@ class RequestsRunner:
             print('Username: {}'.format(self.username))
 
         if self.channel:
-            data['channel'] = self.channel
-            print('Channel: {}'.format(self.channel))
+            if isinstance(self.channel, str):
+                data['channel'] = self.channel
+                print('Channel: {}'.format(self.channel))
+                self.__send(data)
+            elif isinstance(self.channel, list):
+                for ch in self.channel:
+                    if len(ch) > 0:
+                        data['channel'] = ch
+                        print('Channel: {}'.format(ch))
 
+                    self.__send(data)
+            else:
+                raise Exception('Unknown channel type: {}'.format(self.channel.__class__))
+        else:
+            self.__send(data)
+
+    def __send(self, data):
         resp = requests.post(self.url, data=json.dumps(data, sort_keys=True))
 
         if resp.status_code != 200:

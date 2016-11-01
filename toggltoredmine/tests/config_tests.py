@@ -73,5 +73,22 @@ class ConfigTests(unittest.TestCase):
 		except Exception as exc:
 			self.assertEqual('"entries" element not found in config', str(exc))
 
+	def test_fromFile_config7_multiple_channels(self):
+		config = Config.fromFile('toggltoredmine/tests/resources/config7.yml')
+
+		self.assertIsInstance(config.mattermost['channel'], list)
+
+		self.assertEquals("#channell", config.mattermost['channel'][0])
+		self.assertEquals("#channel2", config.mattermost['channel'][1])
+
+	def test_fromFile_config8_multiple_channels(self):
+		config = Config.fromFile('toggltoredmine/tests/resources/config8.yml')
+
+		self.assertIsInstance(config.mattermost['channel'], list)
+
+		self.assertEquals("", config.mattermost['channel'][0])
+		self.assertEquals("#channel2", config.mattermost['channel'][1])
+
+
 if __name__ == '__main__':
 	unittest.main()

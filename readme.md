@@ -56,6 +56,12 @@ After synchronization a summary may be send to *mattermost*. In order to send no
 
 You can also request *synchronizer* to post a message to particular channel. For that you have to fill `channel` key in `config.yml`. If you want to receive a message on default incoming webhook channel, remove this key from `config.yml`.
 
+`channel` key in `config.yml` can be also a list and `Toggl2Redmine` will send a message to every specified channel. If you want to send a message to a particular channel and to default channel, add an empty channel and this particular one to `channel` list:
+
+```
+  channel: ["", "#channell"]
+```
+
 Development
 ---
 
