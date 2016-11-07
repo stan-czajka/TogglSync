@@ -7,6 +7,11 @@ redmine: "http://redmine.url/"
 # Optional incoming webook to mattermost (comment to disable)
 mattermost: "http://mattermost.url/"
 
+# or mattermost can specify a channel
+mattermost:
+  url: "http://mattermost.url/"
+  channel: "#channell"
+
 # List of redmine-toggl api key pairs
 entries:
   - label: "entry 1"
