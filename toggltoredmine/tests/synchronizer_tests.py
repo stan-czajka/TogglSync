@@ -220,5 +220,50 @@ class SynchronizerTests(unittest.TestCase):
             hours=1.0,
             comment='test #333 [toggl#777]')
 
+    def test_delete_entry_in_other_task(self):
+        """
+        Synchronizer should check toggl entries for changed issue id
+
+        This simulates situation in which user has reported a time for task #21 and after that changed his mind to report
+        this entry to task #30
+        """
+
+        class RedmineSpec:
+            def get(self): pass
+            def update(self): pass
+
+        class TogllSpec:
+            def get(self, days): pass
+
+        redmine = MagicMock(spec_set=RedmineSpec)
+        toggl = MagicMock(spec_set=TogllSpec)
+
+        toggl.get.return_value = [
+            TogglEntry(None, 2*3600, '2016-01-01T01:01:01', 17, '#30 hard work')
+        ]
+
+        redmine.get.return_value = [
+            RedmineTimeEntry(
+                222,
+                '2016-05-01T04:02:22',
+                'john doe',
+                1,
+                '2016-01-01',
+                21,
+                '#21 hard work [toggl#17]'
+            )
+        ]
+
+        s = Synchronizer(MagicMock(), redmine, toggl, None)
+        s.start(1)
+
+        redmine.update.assert_called_once_with(
+            id=222,
+            issueId=30,
+            spentOn='2016-01-01',
+            hours=2.0,
+            comment='#30 hard work [toggl#17]'
+        )
+
 if __name__ == '__main__':
     unittest.main()
