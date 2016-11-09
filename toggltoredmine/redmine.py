@@ -82,6 +82,10 @@ class RedmineHelper:
 		else:
 			self.redmine.time_entry.delete(id)
 
+	def find_all(self):
+		for t in self.redmine.time_entry.filter(user_id='me'):
+			yield RedmineTimeEntry.fromTimeEntry(t)
+
 if __name__ == '__main__':
 	parser = ArgumentParser(description='Downloads and uploads redmine time entries (if no hours provided, then downloads)')
 
