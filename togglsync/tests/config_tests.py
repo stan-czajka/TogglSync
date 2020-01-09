@@ -5,10 +5,13 @@ from togglsync.config import Entry
 
 
 class EntryTests(unittest.TestCase):
-    def str_test(self):
+    def str_test_redmine(self):
         e = Entry("", "<redmine>", "<toggl>")
+        self.assertEquals("<toggl>: <redmine>", str(e))
 
-        self.assertEquals("<redmine>: <toggl>", str(e))
+    def str_test_jira(self):
+        e = Entry("", None, "<toggl>", "<jira_user>")
+        self.assertEquals("<toggl>: <jira_user>", str(e))
 
 
 class ConfigTests(unittest.TestCase):
@@ -66,7 +69,7 @@ class ConfigTests(unittest.TestCase):
             Config.fromFile("togglsync/tests/resources/config5.yml")
             self.fail()
         except Exception as exc:
-            self.assertEqual('"redmine" element not found in config', str(exc))
+            self.assertEqual('One of "redmine" or "jira" is required in config', str(exc))
 
     def test_fromFile_no_entries(self):
         try:
@@ -90,6 +93,22 @@ class ConfigTests(unittest.TestCase):
 
         self.assertEquals("", config.mattermost["channel"][0])
         self.assertEquals("#channel2", config.mattermost["channel"][1])
+
+    def test_fromFile_config9_jira_params(self):
+        config = Config.fromFile("togglsync/tests/resources/config_jira.yml")
+
+        self.assertEquals("https://www.toggl.com/api/v8/", config.toggl)
+        self.assertEquals("http://jira.url/", config.jira)
+
+        self.assertEquals(2, len(config.entries))
+
+        self.assertEquals("redmine 1", config.entries[0].label)
+        self.assertEquals("redmine-api-key", config.entries[0].redmine)
+        self.assertEquals("toggl-api-key", config.entries[0].toggl)
+
+        self.assertEquals("jira 1", config.entries[1].label)
+        self.assertEquals("jira_username", config.entries[1].jira_username)
+        self.assertEquals("toggl-api-key2", config.entries[1].toggl)
 
 
 if __name__ == "__main__":

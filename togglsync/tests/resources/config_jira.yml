@@ -1,0 +1,15 @@
+# Toggl URL
+toggl: "https://www.toggl.com/api/v8/"
+
+# Redmine url
+jira: "http://jira.url/"
+
+# List of api key pairs
+entries:
+  - label: "redmine 1"
+    redmine_api_key: "redmine-api-key"
+    toggl_api_key: "toggl-api-key"
+
+  - label: "jira 1"
+    jira_username: "jira_username"
+    toggl_api_key: "toggl-api-key2"

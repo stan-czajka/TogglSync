@@ -22,6 +22,8 @@ def initialize(project):
     project.build_depends_on("PyYAML==3.11")
     project.build_depends_on("requests==2.11.0")
     project.build_depends_on("six==1.10.0")
+    project.build_depends_on("jira==2.0.0")
+    project.build_depends_on("python-dateutil==2.8.1")
 
 
 @task

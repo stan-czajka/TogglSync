@@ -21,3 +21,7 @@ entries:
   - label: "entry 2"
     redmine_api_key: "redmine-api-key2"
     toggl_api_key: "toggl-api-key2"
+
+  - label: "jira entry 1"
+    jira_username: "username"
+    toggl_api_key: "toggl-api-key2"

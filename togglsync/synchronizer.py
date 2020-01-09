@@ -150,7 +150,7 @@ class Synchronizer:
             self.updated += 1
 
     def __remove_redmine_entries(self, redmineEntries):
-        for e in entries:
+        for e in redmineEntries:
             self.redmine.delete(e.id)
             print("\tRemoved in redmine: {}".format(e))
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
         if mattermost != None:
             mattermost.append(
-                "Toggl2Redmine v{} for {}".format(version.VERSION, apiKeys.label)
+                "TogglSync v{} for {}".format(version.VERSION, apiKeys.label)
             )
             mattermost.append("---")
             mattermost.append("")
