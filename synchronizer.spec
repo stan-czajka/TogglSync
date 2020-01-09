@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['toggltoredmine\\synchronizer.py'],
+a = Analysis(['togglsync\\synchronizer.py'],
              pathex=['.'],
              binaries=None,
              datas=[ ('config.yml.example', '.'), ],

@@ -1,9 +1,15 @@
-Toggl2Redmine
+TogglSync
 ===
 
-`Toggl2Redmine` is an app for one way synchronizing **[toggl](toggl.com)** entries to **[redmine](https://www.redmine.org/)** time entries associated with **issues**. All toggl entries decorated with issue id (see example) will be treated as entries to send to redmine time entries.
+`TogglSync` is an app for one way synchronizing **[toggl](toggl.com)** entries to:
+ - **[redmine](https://www.redmine.org/)** time entries associated with **issues**. 
+ - **[jira]()** work log associated with Jira issue
+
+All toggl entries decorated with issue id (see example) will be treated as entries to send to redmine time entries.
 
 Optionally after synchronization this app sends a notification to *mattermost*.
+
+# Redmine
 
 Example
 ---
@@ -50,7 +56,7 @@ synchronizer -d 1 -s
 ```
 
 Mattermost
----
+===
 
 After synchronization a summary may be send to *mattermost*. In order to send notification you have to fill mattermost [incoming webhook](https://docs.mattermost.com/developer/webhooks-incoming.html) url in `config.yml`. After that *synchronizer* will send an short summary to mattermost.
 
@@ -63,7 +69,7 @@ You can also request *synchronizer* to post a message to particular channel. For
 ```
 
 Development
----
+===
 
 **Prepare development environemnt**
 
