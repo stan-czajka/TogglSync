@@ -9,8 +9,8 @@ from togglsync.helpers.date_time_helper import DateTimeHelper
 
 class TogglEntry:
     """
-	Class containing single toggl time entry
-	"""
+    Class containing single toggl time entry
+    """
 
     pattern = "#[0-9]{1,}"
 
@@ -59,7 +59,7 @@ class TogglEntry:
         return None
 
     def __str__(self):
-        return "{}. {}: {} (time: {} h, redmine task: {})".format(
+        return "toggl#{}. {}: {} (time: {} h, task id: {})".format(
             self.id,
             self.start,
             self.description,
@@ -73,9 +73,9 @@ class TogglEntry:
 
 class TogglHelper:
     """
-	Class providing access to toggl time entries
-	API: https://github.com/toggl/toggl_api_docs/blob/master/chapters/time_entries.md
-	"""
+    Class providing access to toggl time entries
+    API: https://github.com/toggl/toggl_api_docs/blob/master/chapters/time_entries.md
+    """
 
     def __init__(self, url, togglApiKey):
         self.url = url
@@ -104,13 +104,13 @@ class TogglHelper:
     @staticmethod
     def filterRedmineEntries(entries):
         """
-		Filters toggl entries
+        Filters toggl entries
 
-			- only with redmine id
-			- only with positive duration
-		"""
+            - only with redmine id
+            - only with positive duration
+        """
 
-        return [e for e in entries if e.taskId != None and e.duration > 0]
+        return [e for e in entries if e.taskId is not None and e.duration > 0]
 
 
 if __name__ == "__main__":

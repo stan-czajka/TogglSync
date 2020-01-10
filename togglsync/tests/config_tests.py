@@ -10,8 +10,8 @@ class EntryTests(unittest.TestCase):
         self.assertEquals("<toggl>: <redmine>", str(e))
 
     def str_test_jira(self):
-        e = Entry("", None, "<toggl>", "<jira_user>")
-        self.assertEquals("<toggl>: <jira_user>", str(e))
+        e = Entry("", None, "<toggl>", "jira_user", jira_url="http://jira.url")
+        self.assertEquals("<toggl>: jira_user@http://jira.url", str(e))
 
 
 class ConfigTests(unittest.TestCase):
@@ -64,13 +64,6 @@ class ConfigTests(unittest.TestCase):
         except Exception as exc:
             self.assertEqual('"toggl" element not found in config', str(exc))
 
-    def test_fromFile_no_redmine(self):
-        try:
-            Config.fromFile("togglsync/tests/resources/config5.yml")
-            self.fail()
-        except Exception as exc:
-            self.assertEqual('One of "redmine" or "jira" is required in config', str(exc))
-
     def test_fromFile_no_entries(self):
         try:
             Config.fromFile("togglsync/tests/resources/config6.yml")
@@ -98,17 +91,27 @@ class ConfigTests(unittest.TestCase):
         config = Config.fromFile("togglsync/tests/resources/config_jira.yml")
 
         self.assertEquals("https://www.toggl.com/api/v8/", config.toggl)
-        self.assertEquals("http://jira.url/", config.jira)
 
-        self.assertEquals(2, len(config.entries))
+        self.assertEquals(3, len(config.entries))
 
         self.assertEquals("redmine 1", config.entries[0].label)
         self.assertEquals("redmine-api-key", config.entries[0].redmine)
         self.assertEquals("toggl-api-key", config.entries[0].toggl)
+        self.assertEquals("pattern A", config.entries[0].task_patterns[0])
 
-        self.assertEquals("jira 1", config.entries[1].label)
+        self.assertEquals("Jira 1", config.entries[1].label)
+        self.assertEquals("http://jira1.url/", config.entries[1].jira_url)
         self.assertEquals("jira_username", config.entries[1].jira_username)
-        self.assertEquals("toggl-api-key2", config.entries[1].toggl)
+        self.assertEquals("toggl-api-key1", config.entries[1].toggl)
+        self.assertEquals("pattern B", config.entries[1].task_patterns[0])
+        self.assertEquals("pattern C", config.entries[1].task_patterns[1])
+
+        self.assertEquals("Jira 2", config.entries[2].label)
+        self.assertEquals("http://jira2.url/", config.entries[2].jira_url)
+        self.assertEquals("jira_username", config.entries[2].jira_username)
+        self.assertEquals("toggl-api-key2", config.entries[2].toggl)
+        self.assertEquals("pattern D", config.entries[2].task_patterns[0])
+        self.assertEquals("pattern E", config.entries[2].task_patterns[1])
 
 
 if __name__ == "__main__":

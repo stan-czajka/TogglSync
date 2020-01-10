@@ -4,13 +4,27 @@ from yaml import load, dump
 
 
 class Entry:
-    def __init__(self, label, redmine_api_key, toggl_api_key):
+    def __init__(
+        self,
+        label,
+        redmine_api_key=None,
+        toggl_api_key=None,
+        jira_username=None,
+        jira_url=None,
+        task_patterns=None,
+    ):
         self.label = label
         self.redmine = redmine_api_key
         self.toggl = toggl_api_key
+        self.jira_username = jira_username
+        self.jira_url = jira_url
+        self.task_patterns = task_patterns
 
     def __str__(self):
-        return "{}: {}".format(self.redmine, self.toggl)
+        if self.redmine:
+            return "{}: {}".format(self.toggl, self.redmine)
+        else:
+            return "{}: {}@{}".format(self.toggl, self.jira_username, self.jira_url)
 
 
 class Config:
@@ -41,10 +55,7 @@ class Config:
 
         toggl = deserialized["toggl"]
 
-        if "redmine" not in deserialized:
-            raise Exception('"redmine" element not found in config')
-
-        redmine = deserialized["redmine"]
+        redmine = deserialized.get("redmine", None)
 
         if "mattermost" in deserialized:
             if isinstance(deserialized["mattermost"], str):

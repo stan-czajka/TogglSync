@@ -59,6 +59,8 @@ class RedmineHelper:
         self.entry = entry
         self.simulation = simulation
 
+        if not self.redmine:
+            raise Exception("'redmine' parameter is not provided. Check config.yml")
         self.redmine = Redmine(url, key=entry)
 
         if simulation:
