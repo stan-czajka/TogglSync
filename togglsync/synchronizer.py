@@ -1,7 +1,9 @@
 import argparse
 import traceback
 import sys
+from getpass import getpass
 
+from togglsync.jira_wrapper import JiraHelper
 from togglsync.version import VERSION
 from togglsync.config import Config
 from togglsync.toggl import TogglHelper
@@ -135,7 +137,7 @@ class Synchronizer:
 
     def __insert_redmine_entry(self, togglEntry):
         print("\tInserting into redmine: {}".format(togglEntry))
-        data = togglEntry.toDict()
+        data = self.redmine.dictFromTogglEntry(togglEntry)
         self.redmine.put(**data)
         self.inserted += 1
 
@@ -145,7 +147,7 @@ class Synchronizer:
             self.skipped += 1
         else:
             print("\tEntry changed, updating in redmine: {}".format(togglEntry))
-            data = togglEntry.toDict()
+            data = self.redmine.dictFromTogglEntry(togglEntry)
             self.redmine.update(id=redmineEntry.id, **data)
             self.updated += 1
 
@@ -154,9 +156,8 @@ class Synchronizer:
             self.redmine.delete(e.id)
             print("\tRemoved in redmine: {}".format(e))
 
-    @staticmethod
-    def __equal(togglEntry, redmineEntry):
-        togglEntryDict = togglEntry.toDict()
+    def __equal(self, togglEntry, redmineEntry):
+        togglEntryDict = self.redmine.dictFromTogglEntry(togglEntry)
 
         if togglEntryDict["issueId"] != redmineEntry.issue:
             print(
@@ -166,7 +167,23 @@ class Synchronizer:
             )
             return False
 
-        if togglEntryDict["spentOn"] != redmineEntry.spent_on:
+        if "seconds" in togglEntryDict and togglEntryDict["seconds"] != redmineEntry.spent_on:
+            print(
+                '\tentries not equal, seconds: "{}" vs "{}"'.format(
+                    togglEntryDict["seconds"], redmineEntry.seconds
+                )
+            )
+            return False
+
+        if "started" in togglEntryDict and togglEntryDict["started"] != redmineEntry.spent_on:
+            print(
+                '\tentries not equal, started: "{}" vs "{}"'.format(
+                    togglEntryDict["started"], redmineEntry.started
+                )
+            )
+            return False
+
+        if "spentOn" in togglEntryDict and togglEntryDict["spentOn"] != redmineEntry.spent_on:
             print(
                 '\tentries not equal, spentOn: "{}" vs "{}"'.format(
                     togglEntryDict["spentOn"], redmineEntry.spent_on
@@ -174,7 +191,7 @@ class Synchronizer:
             )
             return False
 
-        if togglEntryDict["hours"] != redmineEntry.hours:
+        if "hours" in togglEntryDict and togglEntryDict["hours"] != redmineEntry.hours:
             print(
                 '\tentries not equal, hours: "{}" vs "{}"'.format(
                     togglEntryDict["hours"], redmineEntry.hours
@@ -224,13 +241,17 @@ if __name__ == "__main__":
         runner = RequestsRunner.fromConfig(config.mattermost)
         mattermost = MattermostNotifier(runner, args.simulation)
 
-    for apiKeys in config.entries:
-        toggl = TogglHelper(config.toggl, apiKeys.toggl)
-        redmine = RedmineHelper(config.redmine, apiKeys.redmine, args.simulation)
+    for config_entry in config.entries:
+        toggl = TogglHelper(config.toggl, config_entry.toggl)
+        if config_entry.redmine_api_key:
+            redmine = RedmineHelper(config.redmine, config_entry.redmine, args.simulation)
+        elif config_entry.jira_url:
+            jira_pass = getpass(prompt="Jira password [{}]:".format(config_entry.jira_username))
+            redmine = JiraHelper(config_entry.jira_url, config_entry.jira_username, jira_pass, args.simulation)
 
         if mattermost != None:
             mattermost.append(
-                "TogglSync v{} for {}".format(version.VERSION, apiKeys.label)
+                "TogglSync v{} for {}".format(version.VERSION, config_entry.label)
             )
             mattermost.append("---")
             mattermost.append("")

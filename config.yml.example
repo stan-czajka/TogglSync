@@ -16,7 +16,7 @@ mattermost:
 entries:
   - label: "Redmine 1"
     task_patterns:
-     - "#[0-9]{1,}"
+     - "(#)([0-9]{1,})"
     redmine_api_key: "redmine-api-key"
     toggl_api_key: "toggl-api-key"
 

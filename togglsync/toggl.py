@@ -3,7 +3,7 @@ import json
 import re
 from argparse import ArgumentParser
 
-from togglsync.config import Config
+from togglsync.config import Config, Entry
 from togglsync.helpers.date_time_helper import DateTimeHelper
 
 
@@ -12,49 +12,45 @@ class TogglEntry:
     Class containing single toggl time entry
     """
 
-    pattern = "#[0-9]{1,}"
-
-    def __init__(self, entry, duration, start, id, description):
-        self.entry = entry
+    def __init__(self, raw_entry: dict, duration, start, id, description, config_entry: Entry):
+        self.raw_entry = raw_entry
         self.duration = duration
         self.start = start
         self.id = id
         self.description = description
+        self.config_entry = config_entry
 
-        self.taskId = TogglEntry.findTaskId(self.description)
+        self.taskId = self.findTaskId()
         self.hours = TogglEntry.secondsToHours(self.duration)
-
-    def toDict(self):
-        return {
-            "issueId": self.taskId,
-            "spentOn": self.start[:10],
-            "hours": self.hours,
-            "comment": "{} [toggl#{}]".format(self.description, self.id),
-        }
+        self.seconds = self.duration
 
     @classmethod
-    def createFromEntry(cls, entry):
+    def createFromEntry(cls, entry, config_entry):
         return cls(
             entry,
             entry["duration"],
             entry["start"],
             entry["id"],
             entry["description"] if "description" in entry else "",
+            config_entry,
         )
 
     @staticmethod
     def secondsToHours(seconds):
         return round(seconds / 3600.0, 2)
 
-    @staticmethod
-    def findTaskId(desc):
-        if not desc:
+    def findTaskId(self):
+        if not self.description or not self.config_entry:
             return None
 
-        found = re.findall(TogglEntry.pattern, desc)
-
-        if len(found) > 0:
-            return int(found[0][1:])
+        for pattern in self.config_entry.task_patterns:
+            found = re.findall(pattern, self.description)
+            if len(found) > 0:
+                match = found[0]
+                if isinstance(match, tuple) and len(match) > 1:
+                    # if match has groups then return the second group
+                    return match[1]
+                return match
 
         return None
 
@@ -64,7 +60,7 @@ class TogglEntry:
             self.start,
             self.description,
             self.hours,
-            "#" + str(self.taskId) if self.taskId else "-",
+            str(self.taskId) if self.taskId else "-",
         )
 
     def __repr__(self):
@@ -77,9 +73,11 @@ class TogglHelper:
     API: https://github.com/toggl/toggl_api_docs/blob/master/chapters/time_entries.md
     """
 
-    def __init__(self, url, togglApiKey):
+    def __init__(self, url, config_entry: Entry):
         self.url = url
-        self.togglApiKey = togglApiKey
+        self.config_entry = config_entry
+        if self.config_entry:
+            self.togglApiKey = config_entry.toggl
 
     def get(self, days):
         print("Downloading since: {} day{}".format(days, "s" if days > 1 else ""))
@@ -87,7 +85,7 @@ class TogglHelper:
         start = DateTimeHelper.get_date_in_past(days) + "+02:00"
         end = DateTimeHelper.get_today_midnight() + "+02:00"
 
-        print("Statrt:\t{}".format(start))
+        print("Start:\t{}".format(start))
         print("End:\t{}".format(end))
 
         auth = (self.togglApiKey, "api_token")
@@ -99,7 +97,7 @@ class TogglHelper:
             raise Exception("Not expected status code: {}".format(r.status_code))
 
         for entry in r.json():
-            yield TogglEntry.createFromEntry(entry)
+            yield TogglEntry.createFromEntry(entry, self.config_entry)
 
     @staticmethod
     def filterRedmineEntries(entries):
@@ -127,7 +125,7 @@ if __name__ == "__main__":
     if args.num >= len(config.entries):
         raise Exception("Invalid num: {}".format(args.num))
 
-    toggl = TogglHelper(config.toggl, config.entries[args.num].toggl)
+    toggl = TogglHelper(config.toggl, config.entries[args.num])
 
     for entry in toggl.get(args.days):
         print(str(entry))

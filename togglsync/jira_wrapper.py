@@ -23,6 +23,8 @@ class JiraTimeEntry:
         self.created_on = created_on
         self.user = user
         self.seconds = seconds
+        if seconds:
+            self.hours = self.secondsToHours(seconds)
         self.spent_on = started
         self.issue = issue
         self.comments = comments
@@ -32,6 +34,10 @@ class JiraTimeEntry:
         return "{0.id} {0.created_on} ({0.user}), {0.seconds}s, @{0.spent_on}, {0.issue}: {0.comments} (toggl_id: {0.toggl_id})".format(
             self
         )
+
+    @staticmethod
+    def secondsToHours(seconds):
+        return round(seconds / 3600.0, 2)
 
     @classmethod
     def findToggleId(cls, comment):
@@ -60,10 +66,20 @@ class JiraHelper:
         self.url = url
         self.simulation = simulation
 
-        self.jira_api = JIRA(url, basic_auth=(user, passwd))
+        if url:
+            self.jira_api = JIRA(url, basic_auth=(user, passwd))
 
         if simulation:
             print("JiraHelper is in simulation mode")
+
+    @staticmethod
+    def dictFromTogglEntry(togglEntry):
+        return {
+            "issueId": togglEntry.taskId,
+            "started": togglEntry.start,
+            "seconds": togglEntry.seconds,
+            "comment": "{} [toggl#{}]".format(togglEntry.description, togglEntry.id),
+        }
 
     def get(self, issue_key):
         try:
@@ -75,21 +91,24 @@ class JiraHelper:
             )
 
     def put(self, issueId, started: datetime, seconds, comment):
-        datetime.now()
+        if isinstance(started, str):
+            started = dateutil.parser.parse(started)
         if self.simulation:
             print(
                 "\t\tSimulate create of: {}, {}, {}, {}".format(
-                    issueId, started, seconds, comment
+                    issueId, str(started), seconds, comment
                 )
             )
         else:
             self.jira_api.add_worklog(issueId, timeSpentSeconds=seconds, started=started, comment=comment)
 
     def update(self, id, issueId, started, seconds, comment):
+        if isinstance(started, str):
+            started = dateutil.parser.parse(started)
         if self.simulation:
             print(
                 "\t\tSimulate update of: {}, {}, {}, {} (#{})".format(
-                    issueId, started, seconds, comment, id
+                    issueId, str(started), seconds, comment, id
                 )
             )
         else:

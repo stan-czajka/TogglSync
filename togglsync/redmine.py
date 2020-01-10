@@ -26,7 +26,7 @@ class RedmineTimeEntry:
         self.toggl_id = RedmineTimeEntry.findToggleId(comments)
 
     def __str__(self):
-        return "{0.id} {0.created_on} ({0.user}), {0.hours}h, @{0.spent_on}, #{0.issue}: {0.comments} (toggle_id: {0.toggl_id})".format(
+        return "{0.id} {0.created_on} ({0.user}), {0.hours}h, @{0.spent_on}, #{0.issue}: {0.comments} (toggl_id: {0.toggl_id})".format(
             self
         )
 
@@ -59,14 +59,24 @@ class RedmineHelper:
         self.entry = entry
         self.simulation = simulation
 
-        if not self.redmine:
+        if not url:
             raise Exception("'redmine' parameter is not provided. Check config.yml")
         self.redmine = Redmine(url, key=entry)
 
         if simulation:
             print("RedmineHelper is in simulation mode")
 
+    @staticmethod
+    def dictFromTogglEntry(togglEntry):
+        return {
+            "issueId": togglEntry.taskId,
+            "spentOn": togglEntry.start[:10],
+            "hours": togglEntry.hours,
+            "comment": "{} [toggl#{}]".format(togglEntry.description, togglEntry.id),
+        }
+
     def get(self, id):
+        id = int(id)
         try:
             for t in self.redmine.time_entry.filter(issue_id=id):
                 yield RedmineTimeEntry.fromTimeEntry(t)
@@ -76,6 +86,7 @@ class RedmineHelper:
             )
 
     def put(self, issueId, spentOn, hours, comment):
+        issueId = int(issueId)
         if self.simulation:
             print(
                 "\t\tSimulate create of: {}, {}, {}, {}".format(
@@ -88,6 +99,7 @@ class RedmineHelper:
             )
 
     def update(self, id, issueId, spentOn, hours, comment):
+        id = int(id)
         if self.simulation:
             print(
                 "\t\tSimulate update of: {}, {}, {}, {} (#{})".format(
@@ -100,6 +112,7 @@ class RedmineHelper:
             )
 
     def delete(self, id):
+        id = int(id)
         if self.simulation:
             print("\t\tSimulate delete of: {}".format(id))
         else:

@@ -3,6 +3,7 @@ import requests
 from unittest.mock import MagicMock, patch, call
 from datetime import datetime
 
+from togglsync.config import Entry
 from togglsync.mattermost import MattermostNotifier, RequestsRunner
 from togglsync.toggl import TogglEntry
 
@@ -10,6 +11,7 @@ from togglsync.toggl import TogglEntry
 class MattermostNotifierTests(unittest.TestCase):
     def setUp(self):
         self.today = datetime.strftime(datetime.today(), "%Y-%m-%d")
+        self.redmine_config = Entry("test", task_patterns=["(#)([0-9]{1,})"])
 
     def test_send(self):
         runner = MagicMock()
@@ -37,7 +39,7 @@ Altogether you did not work today at all :cry:. Hope you ok?
         runner = MagicMock()
 
         mattermost = MattermostNotifier(runner)
-        mattermost.appendEntries([TogglEntry(None, 60, self.today, 777, "")])
+        mattermost.appendEntries([TogglEntry(None, 60, self.today, 777, "", self.redmine_config)])
         mattermost.send()
 
         text = """Found entries in toggl: **1** (filtered: **0**)
@@ -54,8 +56,8 @@ Ugh. Less than 25% of your work had redmine id. Not so good :cry:.
         mattermost = MattermostNotifier(runner)
         mattermost.appendEntries(
             [
-                TogglEntry(None, 60, self.today, 776, ""),
-                TogglEntry(None, 60, self.today, 777, "#666 Hardwork"),
+                TogglEntry(None, 60, self.today, 776, "", self.redmine_config),
+                TogglEntry(None, 60, self.today, 777, "#666 Hardwork", self.redmine_config),
             ]
         )
         mattermost.send()
@@ -78,7 +80,7 @@ You spent most time on:
 
         mattermost = MattermostNotifier(runner)
         mattermost._MattermostNotifier__append_summary(
-            [TogglEntry(None, 4 * 3123, self.today, 777, "#666 Hardwork")]
+            [TogglEntry(None, 4 * 3123, self.today, 777, "#666 Hardwork", self.redmine_config)]
         )
         mattermost.send()
 
@@ -93,7 +95,7 @@ It seems that more than 75% of your today work had redmine id! So .. you rock :r
 
         mattermost = MattermostNotifier(runner)
 
-        e = TogglEntry(None, 4 * 3600, self.today, 777, "#666 Hardwork")
+        e = TogglEntry(None, 4 * 3600, self.today, 777, "#666 Hardwork", self.redmine_config)
         l = []
 
         for i in range(1, 10):
@@ -113,7 +115,7 @@ It seems that more than 75% of your today work had redmine id! So .. you rock :r
 
         mattermost = MattermostNotifier(runner)
 
-        e = TogglEntry(None, 60, self.today, 777, "#666 Hardwork")
+        e = TogglEntry(None, 60, self.today, 777, "#666 Hardwork", self.redmine_config)
         l = []
 
         for i in range(50):
@@ -134,9 +136,9 @@ It seems that more than 75% of your today work had redmine id! So .. you rock :r
         mattermost = MattermostNotifier(runner)
 
         l = [
-            TogglEntry(None, 60, self.today, 777, "#666 Hardwork"),
-            TogglEntry(None, 60, self.today, 777, "Hardwork"),
-            TogglEntry(None, 60, self.today, 777, "Hardwork"),
+            TogglEntry(None, 60, self.today, 777, "#666 Hardwork", self.redmine_config),
+            TogglEntry(None, 60, self.today, 777, "Hardwork", self.redmine_config),
+            TogglEntry(None, 60, self.today, 777, "Hardwork", self.redmine_config),
         ]
 
         mattermost._MattermostNotifier__append_summary(l)
@@ -160,8 +162,8 @@ Almost 50% of your today work had redmine id :blush:."""
     def test_filterToday(self):
         actual = MattermostNotifier.filterToday(
             [
-                TogglEntry(None, 4 * 3600, self.today, 777, "#666 Hardwork"),
-                TogglEntry(None, 4 * 3600, None, 778, "#666 Hardwork"),
+                TogglEntry(None, 4 * 3600, self.today, 777, "#666 Hardwork", self.redmine_config),
+                TogglEntry(None, 4 * 3600, None, 778, "#666 Hardwork", self.redmine_config),
             ]
         )
 
@@ -178,9 +180,9 @@ Almost 50% of your today work had redmine id :blush:."""
 
     def test_filterWithRedmineId(self):
         entries = [
-            TogglEntry(None, 1, self.today, 1, "#666 Hardwork"),
-            TogglEntry(None, 1, self.today, 2, "Hardwork"),
-            TogglEntry(None, 1, self.today, 3, "#666 Hardwork"),
+            TogglEntry(None, 1, self.today, 1, "#666 Hardwork", self.redmine_config),
+            TogglEntry(None, 1, self.today, 2, "Hardwork", self.redmine_config),
+            TogglEntry(None, 1, self.today, 3, "#666 Hardwork", self.redmine_config),
         ]
 
         filtered = MattermostNotifier.filterWithRedmineId(entries)
@@ -240,8 +242,8 @@ Almost 50% of your today work had redmine id :blush:."""
         mattermost = MattermostNotifier(runner)
 
         l = [
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, -300, self.today, 778, "test #334"),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, -300, self.today, 778, "test #334", self.redmine_config),
         ]
 
         mattermost.appendEntries(l)
@@ -266,12 +268,12 @@ You spent most time on:
         mattermost = MattermostNotifier(runner)
 
         l = [
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 0.5 * 3600, self.today, 778, "test #334"),
-            TogglEntry(None, 2 * 3600, self.today, 778, "test #335"),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 0.5 * 3600, self.today, 778, "test #334", self.redmine_config),
+            TogglEntry(None, 2 * 3600, self.today, 778, "test #335", self.redmine_config),
         ]
 
         mattermost._MattermostNotifier__append_redmine_summary(l)
@@ -293,13 +295,13 @@ You spent most time on:
         mattermost = MattermostNotifier(runner)
 
         l = [
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 3600, self.today, 777, "test #333"),
-            TogglEntry(None, 0.5 * 3600, self.today, 778, "test #334"),
-            TogglEntry(None, 2 * 3600, self.today, 778, "test #335"),
-            TogglEntry(None, 10 * 3600, self.today, 778, "test #400"),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 3600, self.today, 777, "test #333", self.redmine_config),
+            TogglEntry(None, 0.5 * 3600, self.today, 778, "test #334", self.redmine_config),
+            TogglEntry(None, 2 * 3600, self.today, 778, "test #335", self.redmine_config),
+            TogglEntry(None, 10 * 3600, self.today, 778, "test #400", self.redmine_config),
         ]
 
         mattermost._MattermostNotifier__append_redmine_summary(l)
@@ -320,7 +322,7 @@ You spent most time on:
 
         mattermost = MattermostNotifier(runner)
 
-        l = [TogglEntry(None, 3600, self.today, 777, "test 333")]
+        l = [TogglEntry(None, 3600, self.today, 777, "test 333", self.redmine_config)]
 
         mattermost._MattermostNotifier__append_redmine_summary(l)
         mattermost.send()

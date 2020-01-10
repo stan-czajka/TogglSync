@@ -65,7 +65,7 @@ class RedmineTimeEntryTests(unittest.TestCase):
         )
         self.assertEquals(
             str(entry),
-            "17 2016-01-01 11:20 (john doe), 3h, @2016-03-01, #21: no comment (toggle_id: None)",
+            "17 2016-01-01 11:20 (john doe), 3h, @2016-03-01, #21: no comment (toggl_id: None)",
         )
 
     def testFindTogglId(self):
