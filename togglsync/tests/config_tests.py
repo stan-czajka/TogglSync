@@ -25,11 +25,11 @@ class ConfigTests(unittest.TestCase):
         self.assertEquals(2, len(config.entries))
 
         self.assertEquals("entry 1", config.entries[0].label)
-        self.assertEquals("redmine-api-key", config.entries[0].redmine)
+        self.assertEquals("redmine-api-key", config.entries[0].redmine_api_key)
         self.assertEquals("toggl-api-key", config.entries[0].toggl)
 
         self.assertEquals("entry 2", config.entries[1].label)
-        self.assertEquals("redmine-api-key2", config.entries[1].redmine)
+        self.assertEquals("redmine-api-key2", config.entries[1].redmine_api_key)
         self.assertEquals("toggl-api-key2", config.entries[1].toggl)
 
     def test_fromFile_config2(self):
@@ -43,11 +43,11 @@ class ConfigTests(unittest.TestCase):
         self.assertEquals(2, len(config.entries))
 
         self.assertEquals("entry 1", config.entries[0].label)
-        self.assertEquals("redmine-api-key", config.entries[0].redmine)
+        self.assertEquals("redmine-api-key", config.entries[0].redmine_api_key)
         self.assertEquals("toggl-api-key", config.entries[0].toggl)
 
         self.assertEquals("entry 2", config.entries[1].label)
-        self.assertEquals("redmine-api-key2", config.entries[1].redmine)
+        self.assertEquals("redmine-api-key2", config.entries[1].redmine_api_key)
         self.assertEquals("toggl-api-key2", config.entries[1].toggl)
 
     def test_fromFile_config3_no_url_in_mattermost(self):
@@ -95,7 +95,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEquals(3, len(config.entries))
 
         self.assertEquals("redmine 1", config.entries[0].label)
-        self.assertEquals("redmine-api-key", config.entries[0].redmine)
+        self.assertEquals("redmine-api-key", config.entries[0].redmine_api_key)
         self.assertEquals("toggl-api-key", config.entries[0].toggl)
         self.assertEquals("pattern A", config.entries[0].task_patterns[0])
 

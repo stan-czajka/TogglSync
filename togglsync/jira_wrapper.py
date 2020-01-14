@@ -4,6 +4,7 @@ from datetime import datetime
 from getpass import getpass
 
 import dateutil.parser
+import dateutil.tz
 
 from jira import JIRA
 
@@ -18,7 +19,7 @@ class JiraTimeEntry:
 
     toggl_id_pattern = "\[toggl#([0-9]+)\]"
 
-    def __init__(self, id, created_on, user, seconds, started, issue, comments):
+    def __init__(self, id, created_on, user, seconds, started, issue, comments, jira_issue_id=None):
         self.id = id
         self.created_on = created_on
         self.user = user
@@ -29,6 +30,7 @@ class JiraTimeEntry:
         self.issue = issue
         self.comments = comments
         self.toggl_id = self.findToggleId(comments)
+        self.jira_issue_id = jira_issue_id
 
     def __str__(self):
         return "{0.id} {0.created_on} ({0.user}), {0.seconds}s, @{0.spent_on}, {0.issue}: {0.comments} (toggl_id: {0.toggl_id})".format(
@@ -48,16 +50,23 @@ class JiraTimeEntry:
         return int(found.group(1)) if found else None
 
     @classmethod
-    def fromWorklog(cls, jiraWorklog):
+    def fromWorklog(cls, jiraWorklog, issue_key):
         # https://jira.readthedocs.io/en/latest/examples.html#fields
+        # raw datetime value is ISO string, tz-aware, local timezone
+        created_utc = dateutil.parser.parse(jiraWorklog.created).astimezone(dateutil.tz.UTC)
+        started_utc = dateutil.parser.parse(jiraWorklog.started).astimezone(dateutil.tz.UTC)
+
         return cls(
             jiraWorklog.id,
-            dateutil.parser.parse(jiraWorklog.created),  # raw value is ISO string
+            created_utc.isoformat(),
             jiraWorklog.author.name,
             jiraWorklog.timeSpentSeconds,
-            dateutil.parser.parse(jiraWorklog.started),  # raw value is ISO string
-            jiraWorklog.issueId,  # issue.id, not issue.key!
-            jiraWorklog.comment,
+            started_utc.isoformat(),
+            issue_key,  # as worklog.issueId is internal numeric value not issue.key
+            jiraWorklog.comment
+            if hasattr(jiraWorklog, "comment")
+            else None,
+            jira_issue_id=jiraWorklog.issueId,  # issue.id, not issue.key!
         )
 
 
@@ -65,6 +74,7 @@ class JiraHelper:
     def __init__(self, url, user, passwd, simulation):
         self.url = url
         self.simulation = simulation
+        self.user_name = user
 
         if url:
             self.jira_api = JIRA(url, basic_auth=(user, passwd))
@@ -84,7 +94,8 @@ class JiraHelper:
     def get(self, issue_key):
         try:
             for worklog in self.jira_api.worklogs(issue_key):
-                yield JiraTimeEntry.fromWorklog(worklog)
+                if worklog.author.name == self.user_name:
+                    yield JiraTimeEntry.fromWorklog(worklog, issue_key)
         except Exception as exc:
             raise Exception(
                 "Error downloading time entries for {}: {}".format(issue_key, str(exc))
@@ -100,19 +111,23 @@ class JiraHelper:
                 )
             )
         else:
+            # add_worklog "started" is expected as datetime
             self.jira_api.add_worklog(issueId, timeSpentSeconds=seconds, started=started, comment=comment)
 
     def update(self, id, issueId, started, seconds, comment):
-        if isinstance(started, str):
-            started = dateutil.parser.parse(started)
+        if isinstance(started, datetime):
+            # exactly this format otherwise will get an Http-500
+            started = started.strftime("%Y-%m-%dT%H:%M:%S.000+0000%z")
         if self.simulation:
             print(
                 "\t\tSimulate update of: {}, {}, {}, {} (#{})".format(
-                    issueId, str(started), seconds, comment, id
+                    issueId, started, seconds, comment, id
                 )
             )
         else:
             worklog = self.jira_api.worklog(issueId, id)
+            # update "started" is expected as str
+            print("Update: {}s on {} with {}".format(seconds, started, comment))
             worklog.update(timeSpentSeconds=seconds, started=started, comment=comment)
 
     def delete(self, id, issueId):
@@ -131,16 +146,21 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--issue", help="Issue id", required=True, type=str)
     parser.add_argument("-t", "--time", help="Seconds spent")
     parser.add_argument("-c", "--comment", help="Comment")
+    parser.add_argument("-u", "--update", help="Worklog id to update")
     parser.add_argument("-n", "--num", help="Config entry number", default=0, type=int)
 
     args = parser.parse_args()
 
     config = Config.fromFile()
-    jira_username = config.entries[args.num].jira_username
+    config_entry = config.entries[args.num]
+    jira_username = config_entry.jira_username
     jira_pass = getpass(prompt="Jira password [{}]:".format(jira_username))
-    helper = JiraHelper(config.jira, jira_username, jira_pass, simulation=False)
+    helper = JiraHelper(config_entry.jira_url, jira_username, jira_pass, simulation=False)
 
-    if args.time:
+    if args.time and args.update:
+        print("Updating {} ...".format(args.update))
+        helper.update(int(args.update), args.issue, datetime.now(), args.time, args.comment)
+    elif args.time:
         print("Saving...")
         helper.put(args.issue, datetime.now(), args.time, args.comment)
     else:

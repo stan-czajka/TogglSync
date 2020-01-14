@@ -1,21 +1,23 @@
 import argparse
-import traceback
 import sys
+import traceback
 from getpass import getpass
 
-from togglsync.jira_wrapper import JiraHelper
-from togglsync.version import VERSION
-from togglsync.config import Config
-from togglsync.toggl import TogglHelper
-from togglsync.redmine import RedmineHelper
-from togglsync.mattermost import MattermostNotifier, RequestsRunner
+import dateutil.parser
+
 from togglsync import version
+from togglsync.config import Config
+from togglsync.jira_wrapper import JiraHelper
+from togglsync.mattermost import MattermostNotifier, RequestsRunner
+from togglsync.redmine_wrapper import RedmineHelper
+from togglsync.toggl import TogglHelper
+from togglsync.version import VERSION
 
 
 class Synchronizer:
-    def __init__(self, config, redmine, toggl, mattermost):
+    def __init__(self, config, api_helper, toggl, mattermost):
         self.config = config
-        self.redmine = redmine
+        self.api_helper = api_helper
         self.toggl = toggl
         self.mattermost = mattermost
 
@@ -49,13 +51,13 @@ class Synchronizer:
 
         for issueId in togglEntriesByIssueId:
             try:
-                redmineEntries = list(self.redmine.get(issueId))
+                redmineEntries = list(self.api_helper.get(issueId))
                 filteredRedmineEntries = [
                     e for e in redmineEntries if e.toggl_id != None
                 ]
 
                 print(
-                    "Found entries in redmine for issue {}: {} (with toggl id: {})".format(
+                    "Found entries in destination for issue {}: {} (with toggl id: {})".format(
                         issueId, len(redmineEntries), len(filteredRedmineEntries)
                     )
                 )
@@ -137,27 +139,27 @@ class Synchronizer:
 
     def __insert_redmine_entry(self, togglEntry):
         print("\tInserting into redmine: {}".format(togglEntry))
-        data = self.redmine.dictFromTogglEntry(togglEntry)
-        self.redmine.put(**data)
+        data = self.api_helper.dictFromTogglEntry(togglEntry)
+        self.api_helper.put(**data)
         self.inserted += 1
 
     def __update_redmine_entry(self, togglEntry, redmineEntry):
-        if self.__equal(togglEntry, redmineEntry):
+        if self._equal(togglEntry, redmineEntry):
             print("\tUp to date: {}".format(togglEntry))
             self.skipped += 1
         else:
-            print("\tEntry changed, updating in redmine: {}".format(togglEntry))
-            data = self.redmine.dictFromTogglEntry(togglEntry)
-            self.redmine.update(id=redmineEntry.id, **data)
+            print("\tEntry changed, updating in destination: {}".format(togglEntry))
+            data = self.api_helper.dictFromTogglEntry(togglEntry)
+            self.api_helper.update(id=redmineEntry.id, **data)
             self.updated += 1
 
     def __remove_redmine_entries(self, redmineEntries):
         for e in redmineEntries:
-            self.redmine.delete(e.id)
-            print("\tRemoved in redmine: {}".format(e))
+            self.api_helper.delete(e.id)
+            print("\tRemoved in destination: {}".format(e))
 
-    def __equal(self, togglEntry, redmineEntry):
-        togglEntryDict = self.redmine.dictFromTogglEntry(togglEntry)
+    def _equal(self, togglEntry, redmineEntry):
+        togglEntryDict = self.api_helper.dictFromTogglEntry(togglEntry)
 
         if togglEntryDict["issueId"] != redmineEntry.issue:
             print(
@@ -167,18 +169,20 @@ class Synchronizer:
             )
             return False
 
-        if "seconds" in togglEntryDict and togglEntryDict["seconds"] != redmineEntry.spent_on:
+        # when comapring by seconds, accuracy has to be rounded to minutes
+        # Jira API rounds/truncates to minutes event though data is provided in seconds
+        if "seconds" in togglEntryDict and not self._eq_to_minutes(togglEntryDict["seconds"], redmineEntry.seconds):
             print(
-                '\tentries not equal, seconds: "{}" vs "{}"'.format(
+                '\tentries not equal, seconds (accuracy to minutes): "{}" vs "{}"'.format(
                     togglEntryDict["seconds"], redmineEntry.seconds
                 )
             )
             return False
 
-        if "started" in togglEntryDict and togglEntryDict["started"] != redmineEntry.spent_on:
+        if "started" in togglEntryDict and not self._eq_datetime_str(togglEntryDict["started"], redmineEntry.spent_on):
             print(
                 '\tentries not equal, started: "{}" vs "{}"'.format(
-                    togglEntryDict["started"], redmineEntry.started
+                    togglEntryDict["started"], redmineEntry.spent_on
                 )
             )
             return False
@@ -209,10 +213,32 @@ class Synchronizer:
 
         return True
 
+    @staticmethod
+    def _eq_to_minutes(source_seconds, target_seconds):
+        return abs(source_seconds - target_seconds) < 60
+
+    @staticmethod
+    def _eq_datetime_str(source_time: str, target_time: str):
+        # comparing wo/ microseconds
+        source = dateutil.parser.parse(source_time).replace(microsecond=0)
+        target = dateutil.parser.parse(target_time).replace(microsecond=0)
+        return source == target
+
+
+
+def create_api_helper():
+    if config_entry.redmine_api_key:
+        return RedmineHelper(config.redmine, config_entry.redmine_api_key, args.simulation)
+    elif config_entry.jira_url:
+        jira_pass = getpass(prompt="Jira password [{}]:".format(config_entry.jira_username))
+        return JiraHelper(config_entry.jira_url, config_entry.jira_username, jira_pass, args.simulation)
+    else:
+        return None
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Syncs toggle entries to redmine. Version v{}".format(VERSION)
+        description="Syncs toggle entries to redmine or jira. Version v{}".format(VERSION)
     )
 
     parser.add_argument(
@@ -233,7 +259,7 @@ if __name__ == "__main__":
 
     config = Config.fromFile()
 
-    print("Found api key pairs: {}".format(len(config.entries)))
+    # print("Found api key pairs: {}".format(len(config.entries)))
 
     mattermost = None
 
@@ -242,12 +268,11 @@ if __name__ == "__main__":
         mattermost = MattermostNotifier(runner, args.simulation)
 
     for config_entry in config.entries:
-        toggl = TogglHelper(config.toggl, config_entry.toggl)
-        if config_entry.redmine_api_key:
-            redmine = RedmineHelper(config.redmine, config_entry.redmine, args.simulation)
-        elif config_entry.jira_url:
-            jira_pass = getpass(prompt="Jira password [{}]:".format(config_entry.jira_username))
-            redmine = JiraHelper(config_entry.jira_url, config_entry.jira_username, jira_pass, args.simulation)
+        toggl = TogglHelper(config.toggl, config_entry)
+        api_helper = create_api_helper()
+        if not api_helper:
+            print("Can't interpret config to destination API - entry: ".format(config_entry.label))
+            continue
 
         if mattermost != None:
             mattermost.append(
@@ -256,7 +281,7 @@ if __name__ == "__main__":
             mattermost.append("---")
             mattermost.append("")
 
-        sync = Synchronizer(config, redmine, toggl, mattermost)
+        sync = Synchronizer(config, api_helper, toggl, mattermost)
         sync.start(args.days)
 
     if mattermost != None:

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, MagicMock
 
 from togglsync.config import Entry
-from togglsync.redmine import RedmineTimeEntry, RedmineHelper
+from togglsync.redmine_wrapper import RedmineTimeEntry, RedmineHelper
 from togglsync.synchronizer import Synchronizer
 from togglsync.toggl import TogglEntry, TogglHelper
 

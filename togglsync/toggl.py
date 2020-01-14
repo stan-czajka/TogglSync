@@ -1,7 +1,9 @@
-import requests
-import json
 import re
 from argparse import ArgumentParser
+
+import dateutil.parser
+import dateutil.tz
+import requests
 
 from togglsync.config import Config, Entry
 from togglsync.helpers.date_time_helper import DateTimeHelper
@@ -26,10 +28,11 @@ class TogglEntry:
 
     @classmethod
     def createFromEntry(cls, entry, config_entry):
+        start_utc = dateutil.parser.parse(entry["start"]).astimezone(dateutil.tz.UTC)
         return cls(
             entry,
             entry["duration"],
-            entry["start"],
+            start_utc.isoformat(),
             entry["id"],
             entry["description"] if "description" in entry else "",
             config_entry,

@@ -14,15 +14,15 @@ class Entry:
         task_patterns=None,
     ):
         self.label = label
-        self.redmine = redmine_api_key
+        self.redmine_api_key = redmine_api_key
         self.toggl = toggl_api_key
         self.jira_username = jira_username
         self.jira_url = jira_url
         self.task_patterns = task_patterns
 
     def __str__(self):
-        if self.redmine:
-            return "{}: {}".format(self.toggl, self.redmine)
+        if self.redmine_api_key:
+            return "{}: {}".format(self.toggl, self.redmine_api_key)
         else:
             return "{}: {}@{}".format(self.toggl, self.jira_username, self.jira_url)
 

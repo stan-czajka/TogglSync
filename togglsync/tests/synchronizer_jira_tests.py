@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, MagicMock
 
+import dateutil.parser
+
 from togglsync.config import Entry
 from togglsync.jira_wrapper import JiraTimeEntry, JiraHelper
 from togglsync.synchronizer import Synchronizer
@@ -254,6 +256,61 @@ class SynchronizerJiraTests(unittest.TestCase):
             seconds=3600,
             comment="test #333 [toggl#777]",
         )
+
+    def create_test_entries_pair(self):
+        toggl = TogglEntry(
+            None, 3600, "2020-01-13T08:11:04+00:00", 777, "test #333", self.redmine_config
+        )
+        jira = JiraTimeEntry(
+            "987654321",
+            created_on="2020-01-13T08:11:04.000+00:00",
+            user="user",
+            seconds=3600,
+            started="2020-01-13T08:11:04.000+00:00",
+            issue="333",
+            comments="test #333 [toggl#777]",
+            jira_issue_id="12345",
+        )
+        return toggl, jira
+
+    def test_equal_exact(self):
+        toggl, jira = self.create_test_entries_pair()
+
+        helper = JiraHelper(None, None, None, False)
+        sync = Synchronizer(None, helper, None, None)
+        self.assertTrue(sync._equal(toggl, jira))
+
+    def test_equal_rounding_to_min(self):
+        toggl, jira = self.create_test_entries_pair()
+        toggl.seconds += 30
+
+        helper = JiraHelper(None, None, None, False)
+        sync = Synchronizer(None, helper, None, None)
+        self.assertTrue(sync._equal(toggl, jira))
+
+    def test_equal_diff_time(self):
+        toggl, jira = self.create_test_entries_pair()
+        toggl.seconds = 120
+
+        helper = JiraHelper(None, None, None, False)
+        sync = Synchronizer(None, helper, None, None)
+        self.assertFalse(sync._equal(toggl, jira))
+
+    def test_equal_diff_started(self):
+        toggl, jira = self.create_test_entries_pair()
+        toggl.start = "2016-12-25T01:01:01"
+
+        helper = JiraHelper(None, None, None, False)
+        sync = Synchronizer(None, helper, None, None)
+        self.assertFalse(sync._equal(toggl, jira))
+
+    def test_equal_diff_comment(self):
+        toggl, jira = self.create_test_entries_pair()
+        toggl.description = "changed #333"
+
+        helper = JiraHelper(None, None, None, False)
+        sync = Synchronizer(None, helper, None, None)
+        self.assertFalse(sync._equal(toggl, jira))
 
 
 if __name__ == "__main__":

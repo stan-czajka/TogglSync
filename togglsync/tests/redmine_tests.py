@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, date
 
-from togglsync.redmine import RedmineTimeEntry
+from togglsync.redmine_wrapper import RedmineTimeEntry
 
 
 class UserStub:

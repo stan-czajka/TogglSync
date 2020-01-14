@@ -54,14 +54,14 @@ class RedmineTimeEntry:
 
 
 class RedmineHelper:
-    def __init__(self, url, entry, simulation):
+    def __init__(self, url, api_key, simulation):
         self.url = url
-        self.entry = entry
+        self.api_key = api_key
         self.simulation = simulation
 
         if not url:
             raise Exception("'redmine' parameter is not provided. Check config.yml")
-        self.redmine = Redmine(url, key=entry)
+        self.redmine = Redmine(url, key=api_key)
 
         if simulation:
             print("RedmineHelper is in simulation mode")

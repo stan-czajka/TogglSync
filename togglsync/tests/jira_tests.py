@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, date
+import dateutil.tz
 
 from togglsync.jira_wrapper import JiraTimeEntry
 
@@ -30,20 +31,21 @@ class JiraTimeEntryTests(unittest.TestCase):
     def testCreatefromWorklog(self):
         stub = JiraWorklogStub(
             1234,
-            datetime(2016, 1, 1, 11, 20, 0),
+            datetime(2016, 1, 1, 11, 20, 0, tzinfo=dateutil.tz.UTC),
             "john",
             120,
-            datetime(2016, 3, 1, 10, 38, 0),
+            datetime(2016, 3, 1, 10, 38, 0, tzinfo=dateutil.tz.UTC),
             234123,
             "no comment",
         )
-        entry = JiraTimeEntry.fromWorklog(stub)
+        entry = JiraTimeEntry.fromWorklog(stub, "PROJ-1234")
 
-        self.assertEquals(datetime(2016, 1, 1, 11, 20, 0), entry.created_on)
+        self.assertEquals("2016-01-01T11:20:00+00:00", entry.created_on)
         self.assertEquals("john", entry.user)
         self.assertEquals(120, entry.seconds)
-        self.assertEquals(datetime(2016, 3, 1, 10, 38, 0), entry.spent_on)
-        self.assertEquals(stub.issueId, entry.issue)
+        self.assertEquals("2016-03-01T10:38:00+00:00", entry.spent_on)
+        self.assertEquals("PROJ-1234", entry.issue)
+        self.assertEquals(stub.issueId, entry.jira_issue_id)
         self.assertEquals(stub.comment, entry.comments)
         self.assertIsNone(entry.toggl_id)
 
@@ -57,7 +59,7 @@ class JiraTimeEntryTests(unittest.TestCase):
             234123,
             "no comment [toggl#987654321]",
         )
-        entry = JiraTimeEntry.fromWorklog(stub)
+        entry = JiraTimeEntry.fromWorklog(stub, "PROJ-1234")
 
         self.assertEquals(entry.toggl_id, 987654321)
 

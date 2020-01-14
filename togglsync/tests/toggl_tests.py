@@ -14,6 +14,7 @@ class TogglEntryTests(unittest.TestCase):
         }
         entry = TogglEntry.createFromEntry(toggl_payload, None)
         self.assertEquals(2121, entry.id)
+        self.assertEquals("2016-01-01T07:09:09+00:00", entry.start)
 
     @staticmethod
     def find_task_id(patterns, description):
