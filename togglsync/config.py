@@ -1,6 +1,6 @@
 import os
 
-from yaml import load, dump
+from yaml import safe_load
 
 
 class Entry:
@@ -48,7 +48,7 @@ class Config:
 
     @classmethod
     def fromYml(cls, yml):
-        deserialized = load(yml)
+        deserialized = safe_load(yml)
 
         if "toggl" not in deserialized:
             raise Exception('"toggl" element not found in config')

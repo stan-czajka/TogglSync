@@ -15,7 +15,7 @@ from togglsync.version import VERSION
 
 
 class Synchronizer:
-    def __init__(self, config, api_helper, toggl, mattermost):
+    def __init__(self, config, api_helper, toggl, mattermost, raise_errors=False):
         self.config = config
         self.api_helper = api_helper
         self.toggl = toggl
@@ -24,6 +24,7 @@ class Synchronizer:
         self.inserted = 0
         self.updated = 0
         self.skipped = 0
+        self.raise_errors = raise_errors
 
     def start(self, days):
         if days < 0:
@@ -77,6 +78,8 @@ class Synchronizer:
             except Exception as exc:
                 traceback.print_exc()
                 print()
+                if self.raise_errors:
+                    raise
 
         if self.mattermost:
             self.mattermost.append(
@@ -223,7 +226,6 @@ class Synchronizer:
         source = dateutil.parser.parse(source_time).replace(microsecond=0)
         target = dateutil.parser.parse(target_time).replace(microsecond=0)
         return source == target
-
 
 
 def create_api_helper():
