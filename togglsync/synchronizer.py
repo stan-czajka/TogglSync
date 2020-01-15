@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 import traceback
 from getpass import getpass
@@ -6,7 +7,7 @@ from getpass import getpass
 import dateutil.parser
 
 from togglsync import version
-from togglsync.config import Config
+from togglsync.config import Config, Entry
 from togglsync.jira_wrapper import JiraHelper
 from togglsync.mattermost import MattermostNotifier, RequestsRunner
 from togglsync.redmine_wrapper import RedmineHelper
@@ -59,7 +60,9 @@ class Synchronizer:
 
                 print(
                     "Found entries in destination for issue {}: {} (with toggl id: {})".format(
-                        issueId, len(destination_entries), len(filtered_destination_entries)
+                        issueId,
+                        len(destination_entries),
+                        len(filtered_destination_entries),
                     )
                 )
 
@@ -132,7 +135,9 @@ class Synchronizer:
                 self.__insert_entry_in_destination(togglEntry)
             elif len(dest_entries_by_toggl_id) == 1:
                 # if single found, try update
-                self.__update_entry_in_destination(togglEntry, dest_entries_by_toggl_id[0])
+                self.__update_entry_in_destination(
+                    togglEntry, dest_entries_by_toggl_id[0]
+                )
             else:
                 # if more found, remove all entries and insert new one
                 self.__remove_entries_in_destination(dest_entries_by_toggl_id)
@@ -174,7 +179,9 @@ class Synchronizer:
 
         # when comapring by seconds, accuracy has to be rounded to minutes
         # Jira API rounds/truncates to minutes event though data is provided in seconds
-        if "seconds" in togglEntryDict and not self._eq_to_minutes(togglEntryDict["seconds"], destination_entry.seconds):
+        if "seconds" in togglEntryDict and not self._eq_to_minutes(
+            togglEntryDict["seconds"], destination_entry.seconds
+        ):
             print(
                 '\tentries not equal, seconds (accuracy to minutes): "{}" vs "{}"'.format(
                     togglEntryDict["seconds"], destination_entry.seconds
@@ -182,7 +189,9 @@ class Synchronizer:
             )
             return False
 
-        if "started" in togglEntryDict and not self._eq_datetime_str(togglEntryDict["started"], destination_entry.spent_on):
+        if "started" in togglEntryDict and not self._eq_datetime_str(
+            togglEntryDict["started"], destination_entry.spent_on
+        ):
             print(
                 '\tentries not equal, started: "{}" vs "{}"'.format(
                     togglEntryDict["started"], destination_entry.spent_on
@@ -190,7 +199,10 @@ class Synchronizer:
             )
             return False
 
-        if "spentOn" in togglEntryDict and togglEntryDict["spentOn"] != destination_entry.spent_on:
+        if (
+            "spentOn" in togglEntryDict
+            and togglEntryDict["spentOn"] != destination_entry.spent_on
+        ):
             print(
                 '\tentries not equal, spentOn: "{}" vs "{}"'.format(
                     togglEntryDict["spentOn"], destination_entry.spent_on
@@ -198,7 +210,10 @@ class Synchronizer:
             )
             return False
 
-        if "hours" in togglEntryDict and togglEntryDict["hours"] != destination_entry.hours:
+        if (
+            "hours" in togglEntryDict
+            and togglEntryDict["hours"] != destination_entry.hours
+        ):
             print(
                 '\tentries not equal, hours: "{}" vs "{}"'.format(
                     togglEntryDict["hours"], destination_entry.hours
@@ -228,19 +243,46 @@ class Synchronizer:
         return source == target
 
 
-def create_api_helper():
-    if config_entry.redmine_api_key:
-        return RedmineHelper(config.redmine, config_entry.redmine_api_key, args.simulation)
-    elif config_entry.jira_url:
-        jira_pass = getpass(prompt="Jira password [{}]:".format(config_entry.jira_username))
-        return JiraHelper(config_entry.jira_url, config_entry.jira_username, jira_pass, args.simulation)
-    else:
-        return None
+class ApiHelperFactory:
+    pass_cache = {}
+
+    def __init__(self, config_entry: Entry):
+        self.config_entry = config_entry
+
+    @property
+    def jira_pass(self):
+        if self.config_entry.jira_username in self.pass_cache:
+            return self.pass_cache[self.config_entry.jira_username]
+        elif os.environ.get("TOGGL_JIRA_PASS", None):
+            return os.environ["TOGGL_JIRA_PASS"]
+        else:
+            jira_pass = getpass(
+                prompt="Jira password [{}]:".format(config_entry.jira_username)
+            )
+            self.pass_cache[self.config_entry.jira_username] = jira_pass
+            return jira_pass
+
+    def create(self):
+        if self.config_entry.redmine_api_key:
+            return RedmineHelper(
+                config.redmine, config_entry.redmine_api_key, args.simulation
+            )
+        elif config_entry.jira_url:
+            return JiraHelper(
+                config_entry.jira_url,
+                config_entry.jira_username,
+                self.jira_pass,
+                args.simulation,
+            )
+        else:
+            return None
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Syncs toggle entries to redmine or jira. Version v{}".format(VERSION)
+        description="Syncs toggle entries to redmine or jira. Version v{}".format(
+            VERSION
+        )
     )
 
     parser.add_argument(
@@ -270,10 +312,16 @@ if __name__ == "__main__":
         mattermost = MattermostNotifier(runner, args.simulation)
 
     for config_entry in config.entries:
+        print("---")
+        print("Synchronization for {} ...".format(config_entry.label))
         toggl = TogglHelper(config.toggl, config_entry)
-        api_helper = create_api_helper()
+        api_helper = ApiHelperFactory(config_entry).create()
         if not api_helper:
-            print("Can't interpret config to destination API - entry: ".format(config_entry.label))
+            print(
+                "Can't interpret config to destination API - entry: {}".format(
+                    config_entry.label
+                )
+            )
             continue
 
         if mattermost != None:
