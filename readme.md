@@ -9,21 +9,27 @@ All toggl entries decorated with issue id (see example) will be treated as entri
 
 Optionally after synchronization this app sends a notification to *mattermost*.
 
-# Redmine
-
-Example
+Tracking entries in Toggl
 ---
 
-I record a time entry and give it a comment: `Tracing bug for #345`. Running a `synchronizer` will insert a redmine time entry with comment `Tracing bug for #345 [toggl#0000]` at issue #345 (`[toggl#0000]` is a time entry decorator added by `synchronizer` to track unique toggl time entry id).
+Add a time entry in Toggl and give it a comment: 
+- `Tracing bug for #345` (for redmine issue `#345`)
+- `New time entry XYZ-123` (for Jira issue `XYZ-123`) 
 
-Issue id must start with hash sign (*#*) and can be placed anywhere in comment.
+Running a `synchronizer` will insert a redmine time entry with comment `Tracing bug for #345 [toggl#0000]` at issue #345. `[toggl#0000]` is a time entry decorator added by `synchronizer` to track unique toggl time entry id.
+
+Time entry description must contain redmine issue id or jira issue slug in a proper format defined in config file.
 
 Requirements
 ---
 
 * Toggl account and api key
-* Redmine URL
-* Redmine account and api key
+* For Redmine integration:
+   - Redmine URL
+   - Redmine account and api key
+* For Jira integration:
+   - Jira URL
+   - Jira username and password
 * [Optional] *Mattermost* incoming webhook url
 
 How to run
@@ -32,15 +38,16 @@ How to run
 - Download pack from *releases* tab.
 - Unpack ZIP package
 - Copy `config.yml.example` to `config.yml`
-- Fill `config.yml`
+- Edit `config.yml`
+- Run application 
 
-Usage
+Running  
 ---
 
 Get help:
 
 ```
-synchronizer -h
+synchronizer --help
 ```
 
 Run synchronizer for last day:
@@ -71,13 +78,25 @@ You can also request *synchronizer* to post a message to particular channel. For
 Development
 ===
 
-**Prepare development environemnt**
+**Prepare development environment**
 
 ```
+(cd to repo root)
 python -m venv .env
-.env\Scripts\activate.bat (or .sh)
+.env\Scripts\activate.bat (windows)
+source .env\bin\activate (unix)
 pip install pybuilder
 pyb install_dependencies
+```
+
+**Run script from python**
+```
+(cd to repo root)
+.env\Scripts\activate.bat (windows)
+source .env\bin\activate (unix)
+
+export PYTHONPATH=.
+python togglsync/synchronizer.py --help
 ```
 
 **Run tests**

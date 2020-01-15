@@ -45,34 +45,34 @@ class Synchronizer:
             self.mattermost.appendEntries(entries)
 
         if len(filteredEntries) == 0:
-            print("No entries with redmine id found. Nothing to do")
+            print("No entries with tracking id found. Nothing to do")
             return 0
 
         togglEntriesByIssueId = Synchronizer.groupTogglByIssueId(filteredEntries)
 
         for issueId in togglEntriesByIssueId:
             try:
-                redmineEntries = list(self.api_helper.get(issueId))
-                filteredRedmineEntries = [
-                    e for e in redmineEntries if e.toggl_id != None
+                destination_entries = list(self.api_helper.get(issueId))
+                filtered_destination_entries = [
+                    e for e in destination_entries if e.toggl_id is not None
                 ]
 
                 print(
                     "Found entries in destination for issue {}: {} (with toggl id: {})".format(
-                        issueId, len(redmineEntries), len(filteredRedmineEntries)
+                        issueId, len(destination_entries), len(filtered_destination_entries)
                     )
                 )
 
-                redmineEntriesByIssueId = Synchronizer.groupRedmineByIssueId(
-                    filteredRedmineEntries
+                dest_entries_by_issue_id = Synchronizer.groupDestinationByIssueId(
+                    filtered_destination_entries
                 )
 
                 self.__sync(
                     issueId,
                     togglEntriesByIssueId[issueId],
-                    redmineEntriesByIssueId[issueId]
-                    if redmineEntriesByIssueId != None
-                    and issueId in redmineEntriesByIssueId
+                    dest_entries_by_issue_id[issueId]
+                    if dest_entries_by_issue_id != None
+                    and issueId in dest_entries_by_issue_id
                     else None,
                 )
             except Exception as exc:
@@ -105,11 +105,11 @@ class Synchronizer:
             return groups
 
     @staticmethod
-    def groupRedmineByIssueId(redmineEntries):
-        if redmineEntries != None:
+    def groupDestinationByIssueId(destinationEntries):
+        if destinationEntries != None:
             groups = {}
 
-            for e in redmineEntries:
+            for e in destinationEntries:
                 if e.issue not in groups:
                     groups[e.issue] = []
 
@@ -117,99 +117,99 @@ class Synchronizer:
 
             return groups
 
-    def __sync(self, issueId, togglEntries, redmineEntries):
+    def __sync(self, issueId, togglEntries, existingDestinationEntries):
         print("Synchronizing {}".format(issueId))
 
         for togglEntry in togglEntries:
-            redmineEntriesByTogglId = (
-                [e for e in redmineEntries if e.toggl_id == togglEntry.id]
-                if redmineEntries != None
+            dest_entries_by_toggl_id = (
+                [e for e in existingDestinationEntries if e.toggl_id == togglEntry.id]
+                if existingDestinationEntries is not None
                 else []
             )
 
-            if len(redmineEntriesByTogglId) == 0:
-                # no entry in redmine found, should insert
-                self.__insert_redmine_entry(togglEntry)
-            elif len(redmineEntriesByTogglId) == 1:
+            if len(dest_entries_by_toggl_id) == 0:
+                # no entry in destination found, should insert
+                self.__insert_entry_in_destination(togglEntry)
+            elif len(dest_entries_by_toggl_id) == 1:
                 # if single found, try update
-                self.__update_redmine_entry(togglEntry, redmineEntriesByTogglId[0])
+                self.__update_entry_in_destination(togglEntry, dest_entries_by_toggl_id[0])
             else:
                 # if more found, remove all entries and insert new one
-                self.__remove_redmine_entries(redmineEntriesByTogglId)
-                self.__insert_redmine_entry(togglEntry)
+                self.__remove_entries_in_destination(dest_entries_by_toggl_id)
+                self.__insert_entry_in_destination(togglEntry)
 
         print()
 
-    def __insert_redmine_entry(self, togglEntry):
-        print("\tInserting into redmine: {}".format(togglEntry))
+    def __insert_entry_in_destination(self, togglEntry):
+        print("\tInserting into destination: {}".format(togglEntry))
         data = self.api_helper.dictFromTogglEntry(togglEntry)
         self.api_helper.put(**data)
         self.inserted += 1
 
-    def __update_redmine_entry(self, togglEntry, redmineEntry):
-        if self._equal(togglEntry, redmineEntry):
+    def __update_entry_in_destination(self, togglEntry, existing_destination_entry):
+        if self._equal(togglEntry, existing_destination_entry):
             print("\tUp to date: {}".format(togglEntry))
             self.skipped += 1
         else:
             print("\tEntry changed, updating in destination: {}".format(togglEntry))
             data = self.api_helper.dictFromTogglEntry(togglEntry)
-            self.api_helper.update(id=redmineEntry.id, **data)
+            self.api_helper.update(id=existing_destination_entry.id, **data)
             self.updated += 1
 
-    def __remove_redmine_entries(self, redmineEntries):
-        for e in redmineEntries:
+    def __remove_entries_in_destination(self, destination_entries):
+        for e in destination_entries:
             self.api_helper.delete(e.id)
             print("\tRemoved in destination: {}".format(e))
 
-    def _equal(self, togglEntry, redmineEntry):
-        togglEntryDict = self.api_helper.dictFromTogglEntry(togglEntry)
+    def _equal(self, toggl_entry, destination_entry):
+        togglEntryDict = self.api_helper.dictFromTogglEntry(toggl_entry)
 
-        if togglEntryDict["issueId"] != redmineEntry.issue:
+        if togglEntryDict["issueId"] != destination_entry.issue:
             print(
                 '\tentries not equal, issueId: "{}" vs "{}"'.format(
-                    togglEntryDict["issueId"], redmineEntry.issue
+                    togglEntryDict["issueId"], destination_entry.issue
                 )
             )
             return False
 
         # when comapring by seconds, accuracy has to be rounded to minutes
         # Jira API rounds/truncates to minutes event though data is provided in seconds
-        if "seconds" in togglEntryDict and not self._eq_to_minutes(togglEntryDict["seconds"], redmineEntry.seconds):
+        if "seconds" in togglEntryDict and not self._eq_to_minutes(togglEntryDict["seconds"], destination_entry.seconds):
             print(
                 '\tentries not equal, seconds (accuracy to minutes): "{}" vs "{}"'.format(
-                    togglEntryDict["seconds"], redmineEntry.seconds
+                    togglEntryDict["seconds"], destination_entry.seconds
                 )
             )
             return False
 
-        if "started" in togglEntryDict and not self._eq_datetime_str(togglEntryDict["started"], redmineEntry.spent_on):
+        if "started" in togglEntryDict and not self._eq_datetime_str(togglEntryDict["started"], destination_entry.spent_on):
             print(
                 '\tentries not equal, started: "{}" vs "{}"'.format(
-                    togglEntryDict["started"], redmineEntry.spent_on
+                    togglEntryDict["started"], destination_entry.spent_on
                 )
             )
             return False
 
-        if "spentOn" in togglEntryDict and togglEntryDict["spentOn"] != redmineEntry.spent_on:
+        if "spentOn" in togglEntryDict and togglEntryDict["spentOn"] != destination_entry.spent_on:
             print(
                 '\tentries not equal, spentOn: "{}" vs "{}"'.format(
-                    togglEntryDict["spentOn"], redmineEntry.spent_on
+                    togglEntryDict["spentOn"], destination_entry.spent_on
                 )
             )
             return False
 
-        if "hours" in togglEntryDict and togglEntryDict["hours"] != redmineEntry.hours:
+        if "hours" in togglEntryDict and togglEntryDict["hours"] != destination_entry.hours:
             print(
                 '\tentries not equal, hours: "{}" vs "{}"'.format(
-                    togglEntryDict["hours"], redmineEntry.hours
+                    togglEntryDict["hours"], destination_entry.hours
                 )
             )
             return False
 
-        if togglEntryDict["comment"] != redmineEntry.comments:
+        if togglEntryDict["comment"] != destination_entry.comments:
             print(
                 '\tentries not equal, comment: "{}" vs "{}"'.format(
-                    togglEntryDict["comment"], redmineEntry.comments
+                    togglEntryDict["comment"], destination_entry.comments
                 )
             )
             return False
