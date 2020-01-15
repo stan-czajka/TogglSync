@@ -11,41 +11,46 @@ class SynchronizerRedmineTests(unittest.TestCase):
     redmine_config = Entry("test", task_patterns=["(#)([0-9]{1,})"])
 
     def test_start_one_day_empty(self):
-        redmine = Mock()
-        toggl = Mock()
+        redmine = RedmineHelper("url", None, False)
+        toggl = TogglHelper("url", None)
         toggl.get = MagicMock()
 
-        s = Synchronizer(Mock(), redmine, toggl, None)
+        s = Synchronizer(Mock(), redmine, toggl, None, raise_errors=True)
         s.start(1)
 
         toggl.get.assert_called_once_with(1)
 
     def test_start_one_day_single(self):
-        redmine = Mock()
-        toggl = Mock()
+        redmine = RedmineHelper("url", None, False)
+        toggl = TogglHelper("url", None)
 
+        toggl.get = MagicMock()
         toggl.get.return_value = [
             TogglEntry(
-                None, 3600, "2016-01-01T01:01:01", 777, "test #333", self.redmine_config
+                None, 3600, "2016-03-02T01:01:01", 777, "test #333", self.redmine_config
             )
         ]
 
+        redmine.get = MagicMock()
         redmine.get.return_value = [
             RedmineTimeEntry(
                 777,
                 "2016-01-01T01:02:03",
                 "john doe",
-                1.25,
+                1.0,
                 "2016-03-02",
                 333,
                 "test #333 [toggl#777]",
             )
         ]
+        redmine.update = MagicMock()
 
-        s = Synchronizer(Mock(), redmine, toggl, None)
+        s = Synchronizer(Mock(), redmine, toggl, None, raise_errors=True)
         s.start(1)
 
         toggl.get.assert_called_once_with(1)
+        redmine.get.assert_called_once_with('333')
+        redmine.update.assert_not_called()
 
     def test_groupTogglByIssueId(self):
         entries = [
@@ -84,19 +89,19 @@ class SynchronizerRedmineTests(unittest.TestCase):
             RedmineTimeEntry(69, None, None, None, None, 2, "[toggl#24]"),
         ]
 
-        groups = Synchronizer.groupRedmineByIssueId(entries)
+        groups = Synchronizer.groupDestinationByIssueId(entries)
 
         self.assertEquals(2, len(groups))
 
-        self.assertTrue(1 in groups)
-        self.assertTrue(2 in groups)
+        self.assertTrue("1" in groups)
+        self.assertTrue("2" in groups)
 
-        self.assertEquals(1, len(groups[1]))
-        self.assertEquals(3, len(groups[2]))
+        self.assertEquals(1, len(groups["1"]))
+        self.assertEquals(3, len(groups["2"]))
 
-        self.assertEquals(22, groups[2][0].toggl_id)
-        self.assertEquals(23, groups[2][1].toggl_id)
-        self.assertEquals(24, groups[2][2].toggl_id)
+        self.assertEquals(22, groups["2"][0].toggl_id)
+        self.assertEquals(23, groups["2"][1].toggl_id)
+        self.assertEquals(24, groups["2"][2].toggl_id)
 
     def test_sync_single_toggl_no_redmine(self):
         config = MagicMock()
@@ -119,7 +124,7 @@ class SynchronizerRedmineTests(unittest.TestCase):
 
         redmine.get.return_value = []
 
-        s = Synchronizer(config, redmine, toggl, None)
+        s = Synchronizer(config, redmine, toggl, None, raise_errors=True)
         s.start(1)
 
         toggl.get.assert_called_once_with(1)
@@ -132,16 +137,12 @@ class SynchronizerRedmineTests(unittest.TestCase):
         )
 
     def test_sync_single_toggl_already_inserted_in_redmine(self):
-        class RedmineSpec:
-            def get(self):
-                pass
-
-        class TogllSpec:
-            def get(self, days):
-                pass
-
-        redmine = MagicMock(spec_set=RedmineSpec)
-        toggl = MagicMock(spec_set=TogllSpec)
+        redmine = RedmineHelper("url", None, False)
+        redmine.get = Mock()
+        redmine.put = Mock()
+        redmine.update = Mock()
+        toggl = TogglHelper("url", None)
+        toggl.get = Mock()
 
         toggl.get.return_value = [
             TogglEntry(
@@ -161,13 +162,15 @@ class SynchronizerRedmineTests(unittest.TestCase):
                 "john doe",
                 1,
                 "2016-01-01",
-                987,
+                "987",
                 "#987 hard work [toggl#17]",
             )
         ]
 
-        s = Synchronizer(MagicMock(), redmine, toggl, None)
+        s = Synchronizer(MagicMock(), redmine, toggl, None, raise_errors=True)
         s.start(1)
+        redmine.update.assert_not_called()
+        redmine.put.assert_not_called()
 
     def test_sync_single_toggl_modified_entry(self):
         redmine = RedmineHelper("url", None, False)
@@ -199,7 +202,7 @@ class SynchronizerRedmineTests(unittest.TestCase):
             )
         ]
 
-        s = Synchronizer(MagicMock(), redmine, toggl, None)
+        s = Synchronizer(MagicMock(), redmine, toggl, None, raise_errors=True)
         s.start(1)
 
         redmine.update.assert_called_once_with(
@@ -242,7 +245,7 @@ class SynchronizerRedmineTests(unittest.TestCase):
 
         redmine.get.return_value = []
 
-        s = Synchronizer(Mock(), redmine, toggl, None)
+        s = Synchronizer(Mock(), redmine, toggl, None, raise_errors=True)
         s.start(1)
 
         toggl.get.assert_called_once_with(1)

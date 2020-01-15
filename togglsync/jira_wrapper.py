@@ -5,12 +5,9 @@ from getpass import getpass
 
 import dateutil.parser
 import dateutil.tz
-
 from jira import JIRA
 
-
 from togglsync.config import Config
-from togglsync.helpers.date_time_helper import DateTimeHelper
 
 
 class JiraTimeEntry:
@@ -19,7 +16,17 @@ class JiraTimeEntry:
 
     toggl_id_pattern = "\[toggl#([0-9]+)\]"
 
-    def __init__(self, id, created_on, user, seconds, started, issue, comments, jira_issue_id=None):
+    def __init__(
+        self,
+        id,
+        created_on,
+        user,
+        seconds,
+        started,
+        issue,
+        comments,
+        jira_issue_id=None,
+    ):
         self.id = id
         self.created_on = created_on
         self.user = user
@@ -53,8 +60,12 @@ class JiraTimeEntry:
     def fromWorklog(cls, jiraWorklog, issue_key):
         # https://jira.readthedocs.io/en/latest/examples.html#fields
         # raw datetime value is ISO string, tz-aware, local timezone
-        created_utc = dateutil.parser.parse(jiraWorklog.created).astimezone(dateutil.tz.UTC)
-        started_utc = dateutil.parser.parse(jiraWorklog.started).astimezone(dateutil.tz.UTC)
+        created_utc = dateutil.parser.parse(jiraWorklog.created).astimezone(
+            dateutil.tz.UTC
+        )
+        started_utc = dateutil.parser.parse(jiraWorklog.started).astimezone(
+            dateutil.tz.UTC
+        )
 
         return cls(
             jiraWorklog.id,
@@ -63,9 +74,7 @@ class JiraTimeEntry:
             jiraWorklog.timeSpentSeconds,
             started_utc.isoformat(),
             issue_key,  # as worklog.issueId is internal numeric value not issue.key
-            jiraWorklog.comment
-            if hasattr(jiraWorklog, "comment")
-            else None,
+            jiraWorklog.comment if hasattr(jiraWorklog, "comment") else None,
             jira_issue_id=jiraWorklog.issueId,  # issue.id, not issue.key!
         )
 
@@ -112,7 +121,9 @@ class JiraHelper:
             )
         else:
             # add_worklog "started" is expected as datetime
-            self.jira_api.add_worklog(issueId, timeSpentSeconds=seconds, started=started, comment=comment)
+            self.jira_api.add_worklog(
+                issueId, timeSpentSeconds=seconds, started=started, comment=comment
+            )
 
     def update(self, id, issueId, started, seconds, comment):
         if isinstance(started, datetime):
@@ -155,11 +166,15 @@ if __name__ == "__main__":
     config_entry = config.entries[args.num]
     jira_username = config_entry.jira_username
     jira_pass = getpass(prompt="Jira password [{}]:".format(jira_username))
-    helper = JiraHelper(config_entry.jira_url, jira_username, jira_pass, simulation=False)
+    helper = JiraHelper(
+        config_entry.jira_url, jira_username, jira_pass, simulation=False
+    )
 
     if args.time and args.update:
         print("Updating {} ...".format(args.update))
-        helper.update(int(args.update), args.issue, datetime.now(), args.time, args.comment)
+        helper.update(
+            int(args.update), args.issue, datetime.now(), args.time, args.comment
+        )
     elif args.time:
         print("Saving...")
         helper.put(args.issue, datetime.now(), args.time, args.comment)
@@ -168,4 +183,3 @@ if __name__ == "__main__":
         result = helper.get(args.issue)
         for r in result:
             print(str(r))
-

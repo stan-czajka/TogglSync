@@ -42,7 +42,7 @@ class RedmineTimeEntryTests(unittest.TestCase):
         self.assertEquals(stub.user.name, entry.user)
         self.assertEquals(stub.hours, entry.hours)
         self.assertEquals("2016-03-01", entry.spent_on)
-        self.assertEquals(stub.issue.id, entry.issue)
+        self.assertEquals("21", entry.issue)
         self.assertEquals(stub.comments, entry.comments)
 
     def testCreateFromTimeEntry_with_toggle_id(self):

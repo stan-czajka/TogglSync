@@ -1,17 +1,15 @@
-import json
 import re
 from argparse import ArgumentParser
+
 from redmine import Redmine
-from datetime import datetime
 
 from togglsync.config import Config
 from togglsync.helpers.date_time_helper import DateTimeHelper
 
 
 class RedmineTimeEntry:
+    """https://www.redmine.org/projects/redmine/wiki/Rest_TimeEntries
     """
-		https://www.redmine.org/projects/redmine/wiki/Rest_TimeEntries
-	"""
 
     toggl_id_pattern = "\[toggl#([0-9]+)\]"
 
@@ -21,7 +19,7 @@ class RedmineTimeEntry:
         self.user = user
         self.hours = hours
         self.spent_on = spent_on
-        self.issue = issue
+        self.issue = str(issue)
         self.comments = comments
         self.toggl_id = RedmineTimeEntry.findToggleId(comments)
 

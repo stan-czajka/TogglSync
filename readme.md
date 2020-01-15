@@ -108,7 +108,7 @@ nosetests -v
 **Run tests with coverage**
 
 ```
-nosetests --cover-html --with-coverage
+nosetests --with-coverage --cover-package togglsync
 ```
 
 **Prepare executable**

@@ -71,7 +71,7 @@ class Synchronizer:
                     issueId,
                     togglEntriesByIssueId[issueId],
                     dest_entries_by_issue_id[issueId]
-                    if dest_entries_by_issue_id != None
+                    if dest_entries_by_issue_id is not None
                     and issueId in dest_entries_by_issue_id
                     else None,
                 )
