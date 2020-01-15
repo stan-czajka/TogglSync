@@ -1,3 +1,4 @@
+import datetime
 import re
 from argparse import ArgumentParser
 
@@ -58,6 +59,17 @@ class TogglEntry:
         return None
 
     def __str__(self):
+        ts = datetime.timedelta(seconds=self.seconds)
+        local_time = dateutil.parser.parse(self.start).astimezone(dateutil.tz.tzlocal())
+        return "{}: {}, spent: {}, issue: {} [toggl#{}]".format(
+            local_time.strftime("%Y-%m-%d %H:%M"),
+            self.description,
+            str(ts),
+            str(self.taskId) if self.taskId else "-",
+            self.id,
+        )
+
+    def __repr__(self):
         return "toggl#{}. {}: {} (time: {} h, task id: {})".format(
             self.id,
             self.start,
@@ -65,9 +77,6 @@ class TogglEntry:
             self.hours,
             str(self.taskId) if self.taskId else "-",
         )
-
-    def __repr__(self):
-        return str(self)
 
 
 class TogglHelper:

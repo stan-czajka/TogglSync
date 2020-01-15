@@ -1,10 +1,16 @@
 import unittest
+from unittest import mock
+
+import dateutil.parser
+import dateutil.tz
 
 from togglsync.config import Entry
 from togglsync.toggl import TogglEntry
 
 
 class TogglEntryTests(unittest.TestCase):
+    sample_config = Entry("test", task_patterns=["SLUG-[0-9]+"])
+
     def test_parse(self):
         toggl_payload = {
             "id": 2121,
@@ -15,6 +21,35 @@ class TogglEntryTests(unittest.TestCase):
         entry = TogglEntry.createFromEntry(toggl_payload, None)
         self.assertEquals(2121, entry.id)
         self.assertEquals("2016-01-01T07:09:09+00:00", entry.start)
+
+    def test_repr(self):
+        entry = TogglEntry(
+            None,
+            8100,
+            "2016-01-01T09:09:09+02:00",
+            999,
+            "comment SLUG-123",
+            self.sample_config,
+        )
+        self.assertEquals(
+            "toggl#999. 2016-01-01T09:09:09+02:00: comment SLUG-123 (time: 2.25 h, task id: SLUG-123)",
+            repr(entry),
+        )
+
+    def test_str(self):
+        entry = TogglEntry(
+            None,
+            8145,
+            "2016-01-01T10:09:09-00:00",
+            999,
+            "comment SLUG-123",
+            self.sample_config,
+        )
+        with mock.patch("dateutil.tz.tzlocal", return_value=dateutil.tz.gettz("EST")):
+            self.assertEquals(
+                "2016-01-01 05:09: comment SLUG-123, spent: 2:15:45, issue: SLUG-123 [toggl#999]",
+                str(entry),
+            )
 
     @staticmethod
     def find_task_id(patterns, description):
@@ -101,13 +136,15 @@ class TogglEntryTests(unittest.TestCase):
         self.assertEquals(
             "SLUG-123",
             self.find_task_id(
-                [self.jira_pattern_no_groups, self.redmine_pattern], "Description #1234 SLUG-123"
+                [self.jira_pattern_no_groups, self.redmine_pattern],
+                "Description #1234 SLUG-123",
             ),
         )
         self.assertEquals(
             "1234",
             self.find_task_id(
-                [self.redmine_pattern, self.jira_pattern_no_groups], "Description #1234 SLUG-123"
+                [self.redmine_pattern, self.jira_pattern_no_groups],
+                "Description #1234 SLUG-123",
             ),
         )
 
