@@ -1,3 +1,4 @@
+import os
 import re
 from argparse import ArgumentParser
 from datetime import datetime
@@ -126,9 +127,11 @@ class JiraHelper:
             )
 
     def update(self, id, issueId, started, seconds, comment):
-        if isinstance(started, datetime):
-            # exactly this format otherwise will get an Http-500
-            started = started.strftime("%Y-%m-%dT%H:%M:%S.000+0000%z")
+        # have to get the exact dt format, otherwise will get an Http-500
+        if isinstance(started, str):
+            started = dateutil.parser.parse(started)
+        started = started.strftime("%Y-%m-%dT%H:%M:%S.000+0000%z")
+
         if self.simulation:
             print(
                 "\t\tSimulate update of: {}, {}, {}, {} (#{})".format(
@@ -138,7 +141,7 @@ class JiraHelper:
         else:
             worklog = self.jira_api.worklog(issueId, id)
             # update "started" is expected as str
-            print("Update: {}s on {} with {}".format(seconds, started, comment))
+            print("\t\tUpdate: {}s on {} with {}".format(seconds, started, comment))
             worklog.update(timeSpentSeconds=seconds, started=started, comment=comment)
 
     def delete(self, id, issueId):
@@ -147,6 +150,15 @@ class JiraHelper:
         else:
             worklog = self.jira_api.worklog(issueId, id)
             worklog.delete()
+
+
+def get_jira_pass():
+    if os.environ.get("TOGGL_JIRA_PASS", None):
+        return os.environ["TOGGL_JIRA_PASS"]
+    else:
+        return getpass(
+            prompt="Jira password [{}]:".format(config_entry.jira_username)
+        )
 
 
 if __name__ == "__main__":
@@ -158,6 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--time", help="Seconds spent")
     parser.add_argument("-c", "--comment", help="Comment")
     parser.add_argument("-u", "--update", help="Worklog id to update")
+    parser.add_argument("-s", "--started", help="Start datetime of worklog", default=datetime.now().isoformat(), type=str)
     parser.add_argument("-n", "--num", help="Config entry number", default=0, type=int)
 
     args = parser.parse_args()
@@ -165,7 +178,7 @@ if __name__ == "__main__":
     config = Config.fromFile()
     config_entry = config.entries[args.num]
     jira_username = config_entry.jira_username
-    jira_pass = getpass(prompt="Jira password [{}]:".format(jira_username))
+    jira_pass = get_jira_pass()
     helper = JiraHelper(
         config_entry.jira_url, jira_username, jira_pass, simulation=False
     )
@@ -173,11 +186,11 @@ if __name__ == "__main__":
     if args.time and args.update:
         print("Updating {} ...".format(args.update))
         helper.update(
-            int(args.update), args.issue, datetime.now(), args.time, args.comment
+            int(args.update), args.issue, args.started, args.time, args.comment
         )
     elif args.time:
         print("Saving...")
-        helper.put(args.issue, datetime.now(), args.time, args.comment)
+        helper.put(args.issue, args.started, args.time, args.comment)
     else:
         print("Getting worklogs...")
         result = helper.get(args.issue)

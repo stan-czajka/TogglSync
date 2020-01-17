@@ -312,8 +312,8 @@ if __name__ == "__main__":
         mattermost = MattermostNotifier(runner, args.simulation)
 
     for config_entry in config.entries:
-        print("---")
         print("Synchronization for {} ...".format(config_entry.label))
+        print("---")
         toggl = TogglHelper(config.toggl, config_entry)
         api_helper = ApiHelperFactory(config_entry).create()
         if not api_helper:
