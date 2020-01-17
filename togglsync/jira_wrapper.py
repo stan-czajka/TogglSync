@@ -130,7 +130,7 @@ class JiraHelper:
         # have to get the exact dt format, otherwise will get an Http-500
         if isinstance(started, str):
             started = dateutil.parser.parse(started)
-        started = started.strftime("%Y-%m-%dT%H:%M:%S.000+0000%z")
+        started = started.strftime("%Y-%m-%dT%H:%M:%S.000%z")
 
         if self.simulation:
             print(
