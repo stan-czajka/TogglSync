@@ -7,12 +7,37 @@ redmine: "http://redmine.url/"
 # Optional incoming webook to mattermost (comment to disable)
 mattermost: "http://mattermost.url/"
 
+# or mattermost can specify a channel
+mattermost:
+  url: "http://mattermost.url/"
+  channel: "#channell"
+
 # List of redmine-toggl api key pairs
 entries:
-  - label: "entry 1"
+  - label: "Redmine 1"
+    task_patterns:
+     - "(#)([0-9]{1,})"
     redmine_api_key: "redmine-api-key"
     toggl_api_key: "toggl-api-key"
 
-  - label: "entry 2"
+  - label: "Redmine 2"
+    task_patterns:
+     - "#[0-9]{1,}"
     redmine_api_key: "redmine-api-key2"
+    toggl_api_key: "toggl-api-key2"
+
+  - label: "Jira 1"
+    task_patterns:
+      - "(DEV#)(GWN-[0-9]+)"
+      - "GWP-[0-9]+"
+    jira_url: "https://development.getwellnetwork.com"
+    jira_username: "jira_username"
+    toggl_api_key: "toggl-api-key2"
+
+  - label: "Jira 2"
+    task_patterns:
+      - "(SD#)(GWN-[0-9]+)"
+      - "CS-[0-9]+"
+    jira_url: "https://service.getwellnetwork.com"
+    jira_username: "jira_username"
     toggl_api_key: "toggl-api-key2"
