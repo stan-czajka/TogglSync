@@ -82,11 +82,15 @@ Development
 
 ```
 (cd to repo root)
-python -m venv .env
+python -m venv .env (windows/linux)
+virtualenv -p python3 .env (osx)
+
 .env\Scripts\activate.bat (windows)
 source .env\bin\activate (unix)
+
 pip install pybuilder
 pyb install_dependencies
+pip install "requests[security]" (additionally for OSX only)
 ```
 
 **Run script from python**
@@ -114,5 +118,9 @@ nosetests --with-coverage --cover-package togglsync
 **Prepare executable**
 
 ```
-pyb build_exe
+pyb build_exe (windows)
+
+file togglsync_last_day_simulation (OSX)
+chmod u+x togglsync_last_day_simulation
+edit the last command in file to run sync with proper attributes (and name of the file as you wish)
 ```

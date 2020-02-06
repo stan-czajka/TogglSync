@@ -1,0 +1,7 @@
+#! /bin/bash
+
+cd ~/TogglSync
+source .env/bin/activate
+export PYTHONPATH=.
+python togglsync/synchronizer.py -d 1 -s
+
