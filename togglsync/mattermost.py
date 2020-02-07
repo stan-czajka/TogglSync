@@ -85,7 +85,7 @@ class MattermostNotifier:
     def appendEntries(self, allEntries):
         self.append(
             "Found entries in toggl: **{}** (filtered: **{}**)".format(
-                len(allEntries), len(TogglHelper.filterRedmineEntries(allEntries))
+                len(allEntries), len(TogglHelper.filter_valid_entries(allEntries))
             )
         )
 
@@ -158,7 +158,7 @@ class MattermostNotifier:
                 )
 
     def __append_redmine_summary(self, allEntries):
-        redmineEntries = TogglHelper.filterRedmineEntries(allEntries)
+        redmineEntries = TogglHelper.filter_valid_entries(allEntries)
 
         if len(redmineEntries) > 0:
             self.append("---")

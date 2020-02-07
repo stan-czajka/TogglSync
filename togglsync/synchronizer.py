@@ -33,7 +33,7 @@ class Synchronizer:
 
         entries = list(self.toggl.get(days))
 
-        filteredEntries = TogglHelper.filterRedmineEntries(entries)
+        filteredEntries = self.toggl.filter_valid_entries(entries)
 
         print(
             "Found entries in toggl: {} (filtered: {})".format(

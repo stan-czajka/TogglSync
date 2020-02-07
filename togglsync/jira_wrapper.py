@@ -121,6 +121,13 @@ class JiraHelper:
     def put(self, issueId, started: datetime, seconds, comment):
         if isinstance(started, str):
             started = dateutil.parser.parse(started)
+        if int(seconds) < 60:
+            print(
+                "\t\tCan't add entries under 1 min: {}, {}, {}, {}".format(
+                    issueId, str(started), seconds, comment
+                )
+            )
+            return
         if self.simulation:
             print(
                 "\t\tSimulate create of: {}, {}, {}, {}".format(
@@ -138,6 +145,14 @@ class JiraHelper:
         if isinstance(started, str):
             started = dateutil.parser.parse(started)
         started = started.strftime("%Y-%m-%dT%H:%M:%S.000%z")
+        if int(seconds) < 60:
+            print(
+                "\t\tCan't update entries to under 1 min, deleting instead: {}, {}, {}, {}".format(
+                    issueId, str(started), seconds, comment
+                )
+            )
+            self.delete(id, issueId)
+            return
 
         if self.simulation:
             print(
@@ -157,6 +172,7 @@ class JiraHelper:
         else:
             worklog = self.jira_api.worklog(issueId, id)
             worklog.delete()
+            print("\t\tDeleted entry for: {}".format(issueId))
 
 
 def get_jira_pass():
@@ -173,11 +189,12 @@ if __name__ == "__main__":
         description="Downloads work logs for given issue (--issue) or adds work log with given time in seconds (--time)"
     )
 
+    default_start_time = datetime.now(dateutil.tz.tzlocal()).isoformat()
     parser.add_argument("-i", "--issue", help="Issue id", required=True, type=str)
     parser.add_argument("-t", "--time", help="Seconds spent")
     parser.add_argument("-c", "--comment", help="Comment")
     parser.add_argument("-u", "--update", help="Worklog id to update")
-    parser.add_argument("-s", "--started", help="Start datetime of worklog", default=datetime.now().isoformat(), type=str)
+    parser.add_argument("-s", "--started", help="Start datetime of worklog", default=default_start_time, type=str)
     parser.add_argument("-n", "--num", help="Config entry number", default=0, type=int)
 
     args = parser.parse_args()
