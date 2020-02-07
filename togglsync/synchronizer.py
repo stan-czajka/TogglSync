@@ -80,9 +80,9 @@ class Synchronizer:
                     else None,
                 )
             except Exception as exc:
-                traceback.print_exc()
-                print()
+                print(colored(str(exc), Colors.ERROR.value))
                 if self.raise_errors:
+                    # traceback.print_exc()
                     raise
 
         if self.mattermost:
@@ -294,6 +294,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-d", "--days", help="Days to sync", type=int, default=0)
     parser.add_argument("-v", "--version", help="Prints version", action="store_true")
+    parser.add_argument("--errors", help="Break execution on error", action="store_true")
 
     args = parser.parse_args()
 
@@ -332,7 +333,7 @@ if __name__ == "__main__":
             mattermost.append("---")
             mattermost.append("")
 
-        sync = Synchronizer(config, api_helper, toggl, mattermost)
+        sync = Synchronizer(config, api_helper, toggl, mattermost, raise_errors=args.errors)
         sync.start(args.days)
 
     if mattermost != None:
