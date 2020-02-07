@@ -93,11 +93,18 @@ class JiraHelper:
             print("JiraHelper is in simulation mode")
 
     @staticmethod
-    def dictFromTogglEntry(togglEntry):
+    def round_to_minutes(seconds):
+        return round(seconds / 60) * 60
+
+    @classmethod
+    def dictFromTogglEntry(cls, togglEntry):
+        # by default Jira truncates time to full minutes (cuts seconds portion of the time)
+        # which creates big difference over a longer period of time
+        rounded_to_minutes = cls.round_to_minutes(togglEntry.seconds)
         return {
             "issueId": togglEntry.taskId,
             "started": togglEntry.start,
-            "seconds": togglEntry.seconds,
+            "seconds": rounded_to_minutes,
             "comment": "{} [toggl#{}]".format(togglEntry.description, togglEntry.id),
         }
 
