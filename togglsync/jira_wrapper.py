@@ -7,8 +7,9 @@ from getpass import getpass
 import dateutil.parser
 import dateutil.tz
 from jira import JIRA
+from termcolor import colored
 
-from togglsync.config import Config
+from togglsync.config import Config, Colors
 
 
 class JiraTimeEntry:
@@ -123,8 +124,11 @@ class JiraHelper:
             started = dateutil.parser.parse(started)
         if int(seconds) < 60:
             print(
-                "\t\tCan't add entries under 1 min: {}, {}, {}, {}".format(
-                    issueId, str(started), seconds, comment
+                colored(
+                    "\t\tCan't add entries under 1 min: {}, {}, {}, {}".format(
+                        issueId, str(started), seconds, comment
+                    ),
+                    Colors.ERROR.value,
                 )
             )
             return
@@ -147,8 +151,11 @@ class JiraHelper:
         started = started.strftime("%Y-%m-%dT%H:%M:%S.000%z")
         if int(seconds) < 60:
             print(
-                "\t\tCan't update entries to under 1 min, deleting instead: {}, {}, {}, {}".format(
-                    issueId, str(started), seconds, comment
+                colored(
+                    "\t\tCan't update entries to under 1 min, deleting instead: {}, {}, {}, {}".format(
+                        issueId, str(started), seconds, comment
+                    ),
+                    Colors.UPDATE.value,
                 )
             )
             self.delete(id, issueId)
@@ -172,16 +179,14 @@ class JiraHelper:
         else:
             worklog = self.jira_api.worklog(issueId, id)
             worklog.delete()
-            print("\t\tDeleted entry for: {}".format(issueId))
+            print(colored("\t\tDeleted entry for: {}".format(issueId), Colors.UPDATE.value))
 
 
 def get_jira_pass():
     if os.environ.get("TOGGL_JIRA_PASS", None):
         return os.environ["TOGGL_JIRA_PASS"]
     else:
-        return getpass(
-            prompt="Jira password [{}]:".format(config_entry.jira_username)
-        )
+        return getpass(prompt="Jira password [{}]:".format(config_entry.jira_username))
 
 
 if __name__ == "__main__":
@@ -194,7 +199,13 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--time", help="Seconds spent")
     parser.add_argument("-c", "--comment", help="Comment")
     parser.add_argument("-u", "--update", help="Worklog id to update")
-    parser.add_argument("-s", "--started", help="Start datetime of worklog", default=default_start_time, type=str)
+    parser.add_argument(
+        "-s",
+        "--started",
+        help="Start datetime of worklog",
+        default=default_start_time,
+        type=str,
+    )
     parser.add_argument("-n", "--num", help="Config entry number", default=0, type=int)
 
     args = parser.parse_args()
