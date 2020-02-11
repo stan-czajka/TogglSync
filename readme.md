@@ -135,3 +135,15 @@ nosetests --with-coverage --cover-package togglsync
 ```
 pyinstaller --onefile --icon=icon.ico synchronizer.spec
 ```
+
+Change log
+---
+
+**0.5.1**
+- Integration with Jira
+
+**0.5.2**
+- Implemented rounding (to minutes) for Jira 
+- Skipping zero-length entries
+- Added colors to console output
+- Added --errors switch and simplified error message 
