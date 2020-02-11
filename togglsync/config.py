@@ -1,6 +1,13 @@
 import os
+from enum import Enum
 
 from yaml import safe_load
+
+
+class Colors(Enum):
+    ADD = "green"
+    UPDATE = "yellow"
+    ERROR = "red"
 
 
 class Entry:

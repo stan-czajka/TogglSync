@@ -43,6 +43,9 @@ class TogglEntry:
     def secondsToHours(seconds):
         return round(seconds / 3600.0, 2)
 
+    def is_valid(self):
+        return self.taskId is not None and self.duration > 0
+
     def findTaskId(self):
         if not self.description or not self.config_entry:
             return None
@@ -112,15 +115,15 @@ class TogglHelper:
             yield TogglEntry.createFromEntry(entry, self.config_entry)
 
     @staticmethod
-    def filterRedmineEntries(entries):
+    def filter_valid_entries(entries):
         """
         Filters toggl entries
 
-            - only with redmine id
+            - only with issue id
             - only with positive duration
         """
 
-        return [e for e in entries if e.taskId is not None and e.duration > 0]
+        return [e for e in entries if e.is_valid()]
 
 
 if __name__ == "__main__":

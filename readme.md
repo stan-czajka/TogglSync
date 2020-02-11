@@ -39,9 +39,23 @@ How to run
 - Unpack ZIP package
 - Copy `config.yml.example` to `config.yml`
 - Edit `config.yml`
-- Run application 
 
-Running  
+**On Windows:**
+- Run `synchronizer.exe` file with parameters
+
+**On Mac OS X / Unix:**
+- Prepare environment (see Advanced chapter)
+- Run script from python (see Advanced chapter)
+- Optionally prepare runnable script
+   - use `example/togglsync_last_day_simulation` (for OS X)
+   - make file executable:
+        ```
+        chmod u+x togglsync_last_day_simulation
+        ```
+   - edit the command parameters in file to run sync with proper attributes
+   - rename file accordingly  
+
+Examples  
 ---
 
 Get help:
@@ -50,16 +64,16 @@ Get help:
 synchronizer --help
 ```
 
-Run synchronizer for last day:
+Run synchronizer for today:
 
 ```
-synchronizer -d 1
+synchronizer -d 0
 ```
 
-Run synchronizer for last day in simulation mode:
+Run synchronizer for today in simulation mode (no changes will be made):
 
 ```
-synchronizer -d 1 -s
+synchronizer -d 0 -s
 ```
 
 Mattermost
@@ -69,37 +83,50 @@ After synchronization a summary may be send to *mattermost*. In order to send no
 
 You can also request *synchronizer* to post a message to particular channel. For that you have to fill `channel` key in `config.yml`. If you want to receive a message on default incoming webhook channel, remove this key from `config.yml`.
 
-`channel` key in `config.yml` can be also a list and `Toggl2Redmine` will send a message to every specified channel. If you want to send a message to a particular channel and to default channel, add an empty channel and this particular one to `channel` list:
+`channel` key in `config.yml` can be also a list and `TogglSync` will send a message to every specified channel. If you want to send a message to a particular channel and to default channel, add an empty channel and this particular one to `channel` list:
 
 ```
   channel: ["", "#channell"]
 ```
 
-Development
+Advanced
 ===
 
-**Prepare development environment**
+**Prepare environment**
 
+On Unix/OS X:
 ```
-(cd to repo root)
-python -m venv .env (windows/linux)
+cd (to repo root)
 virtualenv -p python3 .env (osx)
+python3 -m pip install --upgrade pip
+source .env/bin/activate
+pip install -r requirements.txt
+```
 
-.env\Scripts\activate.bat (windows)
-source .env\bin\activate (unix)
-
-pip install pybuilder
-pyb install_dependencies
-pip install "requests[security]" (additionally for OSX only)
+On Windows:
+```
+cd (to repo root)
+python -m venv .env
+python -m pip install --upgrade pip
+.env\Scripts\activate.bat
+pip install -r requirements.txt
 ```
 
 **Run script from python**
-```
-(cd to repo root)
-.env\Scripts\activate.bat (windows)
-source .env\bin\activate (unix)
 
+On Unix/OS X:
+```
+cd (to repo root)
+source .env/bin/activate
 export PYTHONPATH=.
+python togglsync/synchronizer.py --help
+```
+
+On Windows:
+```
+cd (to repo root)
+.env\Scripts\activate.bat
+set PYTHONPATH=.
 python togglsync/synchronizer.py --help
 ```
 
@@ -118,9 +145,17 @@ nosetests --with-coverage --cover-package togglsync
 **Prepare executable**
 
 ```
-pyb build_exe (windows)
-
-file togglsync_last_day_simulation (OSX)
-chmod u+x togglsync_last_day_simulation
-edit the last command in file to run sync with proper attributes (and name of the file as you wish)
+pyinstaller --onefile --icon=icon.ico synchronizer.spec
 ```
+
+Change log
+---
+
+**0.5.1**
+- Integration with Jira
+
+**0.5.2**
+- Implemented rounding (to minutes) for Jira 
+- Skipping zero-length entries
+- Added colors to console output
+- Added --errors switch and simplified error message 

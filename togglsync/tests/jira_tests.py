@@ -2,7 +2,9 @@ import unittest
 from datetime import datetime, date
 import dateutil.tz
 
-from togglsync.jira_wrapper import JiraTimeEntry
+from togglsync.config import Entry
+from togglsync.jira_wrapper import JiraTimeEntry, JiraHelper
+from togglsync.toggl import TogglEntry
 
 
 class UserStub:
@@ -82,6 +84,39 @@ class JiraTimeEntryTests(unittest.TestCase):
 
     def testFindTogglId_none(self):
         self.assertEquals(None, JiraTimeEntry.findToggleId(None))
+
+
+class JiraHelperTests(unittest.TestCase):
+    jira_config = Entry("test", task_patterns=["SLUG-[0-9]+"])
+
+    def testDictFromTogglEntry(self):
+        input = TogglEntry(
+            None, 120, "2016-03-02T01:01:01", 777, "test SLUG-333", self.jira_config
+        )
+        result = JiraHelper.dictFromTogglEntry(input)
+        self.assertEquals("SLUG-333", result["issueId"])
+        self.assertEquals("2016-03-02T01:01:01", result["started"])
+        self.assertEquals(120, result["seconds"])
+        self.assertEquals("test SLUG-333 [toggl#777]", result["comment"])
+
+    def testDictFromTogglEntry_time_is_rounded(self):
+        input = TogglEntry(
+            None, 151, "2016-03-02T01:01:01", 777, "test SLUG-333", self.jira_config
+        )
+        result = JiraHelper.dictFromTogglEntry(input)
+        self.assertEquals(180, result["seconds"])
+
+    def test_round_to_minutes(self):
+        self.assertEquals(0, JiraHelper.round_to_minutes(0))
+        self.assertEquals(0, JiraHelper.round_to_minutes(29))
+        self.assertEquals(0, JiraHelper.round_to_minutes(30))
+        self.assertEquals(60, JiraHelper.round_to_minutes(31))
+        self.assertEquals(60, JiraHelper.round_to_minutes(59))
+        self.assertEquals(60, JiraHelper.round_to_minutes(60))
+        self.assertEquals(60, JiraHelper.round_to_minutes(89))
+        self.assertEquals(120, JiraHelper.round_to_minutes(90))  # seems strange, but that how default python rounding works
+        self.assertEquals(120, JiraHelper.round_to_minutes(91))
+        self.assertEquals(120, JiraHelper.round_to_minutes(120))
 
 
 if __name__ == "__main__":

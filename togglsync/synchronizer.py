@@ -5,9 +5,10 @@ import traceback
 from getpass import getpass
 
 import dateutil.parser
+from termcolor import colored
 
 from togglsync import version
-from togglsync.config import Config, Entry
+from togglsync.config import Config, Entry, Colors
 from togglsync.jira_wrapper import JiraHelper
 from togglsync.mattermost import MattermostNotifier, RequestsRunner
 from togglsync.redmine_wrapper import RedmineHelper
@@ -33,7 +34,7 @@ class Synchronizer:
 
         entries = list(self.toggl.get(days))
 
-        filteredEntries = TogglHelper.filterRedmineEntries(entries)
+        filteredEntries = self.toggl.filter_valid_entries(entries)
 
         print(
             "Found entries in toggl: {} (filtered: {})".format(
@@ -79,9 +80,9 @@ class Synchronizer:
                     else None,
                 )
             except Exception as exc:
-                traceback.print_exc()
-                print()
+                print(colored(str(exc), Colors.ERROR.value))
                 if self.raise_errors:
+                    # traceback.print_exc()
                     raise
 
         if self.mattermost:
@@ -146,7 +147,7 @@ class Synchronizer:
         print()
 
     def __insert_entry_in_destination(self, togglEntry):
-        print("\tInserting into destination: {}".format(togglEntry))
+        print(colored("\tInserting into destination: {}".format(togglEntry), Colors.ADD.value))
         data = self.api_helper.dictFromTogglEntry(togglEntry)
         self.api_helper.put(**data)
         self.inserted += 1
@@ -156,7 +157,7 @@ class Synchronizer:
             print("\tUp to date: {}".format(togglEntry))
             self.skipped += 1
         else:
-            print("\tEntry changed, updating in destination: {}".format(togglEntry))
+            print(colored("\tEntry changed, updating in destination: {}".format(togglEntry), Colors.UPDATE.value))
             data = self.api_helper.dictFromTogglEntry(togglEntry)
             self.api_helper.update(id=existing_destination_entry.id, **data)
             self.updated += 1
@@ -164,7 +165,7 @@ class Synchronizer:
     def __remove_entries_in_destination(self, destination_entries):
         for e in destination_entries:
             self.api_helper.delete(e.id)
-            print("\tRemoved in destination: {}".format(e))
+            print(colored("\tRemoved in destination: {}".format(e), Colors.UPDATE.value))
 
     def _equal(self, toggl_entry, destination_entry):
         togglEntryDict = self.api_helper.dictFromTogglEntry(toggl_entry)
@@ -293,6 +294,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-d", "--days", help="Days to sync", type=int, default=0)
     parser.add_argument("-v", "--version", help="Prints version", action="store_true")
+    parser.add_argument("--errors", help="Break execution on error", action="store_true")
 
     args = parser.parse_args()
 
@@ -331,7 +333,7 @@ if __name__ == "__main__":
             mattermost.append("---")
             mattermost.append("")
 
-        sync = Synchronizer(config, api_helper, toggl, mattermost)
+        sync = Synchronizer(config, api_helper, toggl, mattermost, raise_errors=args.errors)
         sync.start(args.days)
 
     if mattermost != None:
