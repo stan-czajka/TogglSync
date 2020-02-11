@@ -35,13 +35,15 @@ Requirements
 How to run
 ---
 
+(for other OS check running from python below)
+
 - Download pack from *releases* tab.
 - Unpack ZIP package
 - Copy `config.yml.example` to `config.yml`
 - Edit `config.yml`
-- Run application 
+- Run exe file with parameters
 
-Running  
+Examples  
 ---
 
 Get help:
@@ -50,16 +52,16 @@ Get help:
 synchronizer --help
 ```
 
-Run synchronizer for last day:
+Run synchronizer for today:
 
 ```
-synchronizer -d 1
+synchronizer -d 0
 ```
 
-Run synchronizer for last day in simulation mode:
+Run synchronizer for today in simulation mode (no changes will be made):
 
 ```
-synchronizer -d 1 -s
+synchronizer -d 0 -s
 ```
 
 Mattermost
@@ -69,7 +71,7 @@ After synchronization a summary may be send to *mattermost*. In order to send no
 
 You can also request *synchronizer* to post a message to particular channel. For that you have to fill `channel` key in `config.yml`. If you want to receive a message on default incoming webhook channel, remove this key from `config.yml`.
 
-`channel` key in `config.yml` can be also a list and `Toggl2Redmine` will send a message to every specified channel. If you want to send a message to a particular channel and to default channel, add an empty channel and this particular one to `channel` list:
+`channel` key in `config.yml` can be also a list and `TogglSync` will send a message to every specified channel. If you want to send a message to a particular channel and to default channel, add an empty channel and this particular one to `channel` list:
 
 ```
   channel: ["", "#channell"]
@@ -80,22 +82,39 @@ Development
 
 **Prepare development environment**
 
+On Unix/OS X:
 ```
-(cd to repo root)
+cd (to repo root)
 python -m venv .env
-.env\Scripts\activate.bat (windows)
-source .env\bin\activate (unix)
-pip install pybuilder
-pyb install_dependencies
+python -m pip install --upgrade pip
+source .env/bin/activate
+pip install -r requirements.txt
+```
+
+On Windows:
+```
+cd (to repo root)
+python -m venv .env
+python -m pip install --upgrade pip
+.env\Scripts\activate.bat
+pip install -r requirements.txt
 ```
 
 **Run script from python**
-```
-(cd to repo root)
-.env\Scripts\activate.bat (windows)
-source .env\bin\activate (unix)
 
+On Unix/OS X:
+```
+cd (to repo root)
+source .env/bin/activate
 export PYTHONPATH=.
+python togglsync/synchronizer.py --help
+```
+
+On Windows:
+```
+cd (to repo root)
+.env\Scripts\activate.bat
+set PYTHONPATH=.
 python togglsync/synchronizer.py --help
 ```
 
@@ -114,5 +133,5 @@ nosetests --with-coverage --cover-package togglsync
 **Prepare executable**
 
 ```
-pyb build_exe
+pyinstaller --onefile --icon=icon.ico synchronizer.spec
 ```
