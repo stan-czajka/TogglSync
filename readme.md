@@ -47,10 +47,10 @@ How to run
 - Prepare environment (see Advanced chapter)
 - Run script from python (see Advanced chapter)
 - Optionally prepare runnable script
-   - use `example/togglsync_last_day_simulation` (for OS X)
+   - use `examples/togglsync_last_day_simulation` (for OS X)
    - make file executable:
         ```
-        chmod u+x togglsync_last_day_simulation
+        chmod u+x examples/togglsync_last_day_simulation
         ```
    - edit the command parameters in file to run sync with proper attributes
    - rename file accordingly  
@@ -159,3 +159,4 @@ Change log
 - Skipping zero-length entries
 - Added colors to console output
 - Added --errors switch and simplified error message 
+- Added example script for OS X 
