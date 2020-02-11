@@ -35,13 +35,25 @@ Requirements
 How to run
 ---
 
-(for other OS check running from python below)
-
 - Download pack from *releases* tab.
 - Unpack ZIP package
 - Copy `config.yml.example` to `config.yml`
 - Edit `config.yml`
-- Run exe file with parameters
+
+**On Windows:**
+- Run `synchronizer.exe` file with parameters
+
+**On Mac OS X / Unix:**
+- Prepare environment (see Advanced chapter)
+- Run script from python (see Advanced chapter)
+- Optionally prepare runnable script
+   - use `examples/togglsync_last_day_simulation` (for OS X)
+   - make file executable:
+        ```
+        chmod u+x examples/togglsync_last_day_simulation
+        ```
+   - edit the command parameters in file to run sync with proper attributes
+   - rename file accordingly  
 
 Examples  
 ---
@@ -77,16 +89,16 @@ You can also request *synchronizer* to post a message to particular channel. For
   channel: ["", "#channell"]
 ```
 
-Development
+Advanced
 ===
 
-**Prepare development environment**
+**Prepare environment**
 
 On Unix/OS X:
 ```
 cd (to repo root)
-python -m venv .env
-python -m pip install --upgrade pip
+virtualenv -p python3 .env (osx)
+python3 -m pip install --upgrade pip
 source .env/bin/activate
 pip install -r requirements.txt
 ```
@@ -147,3 +159,4 @@ Change log
 - Skipping zero-length entries
 - Added colors to console output
 - Added --errors switch and simplified error message 
+- Added example script for OS X 
