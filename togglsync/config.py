@@ -7,6 +7,7 @@ from yaml import safe_load
 class Colors(Enum):
     ADD = "green"
     UPDATE = "yellow"
+    IMPORTANT = "yellow"
     ERROR = "red"
 
 

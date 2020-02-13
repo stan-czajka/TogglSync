@@ -97,11 +97,11 @@ class TogglHelper:
     def get(self, days):
         print("Downloading since: {} day{}".format(days, "s" if days > 1 else ""))
 
-        start = DateTimeHelper.get_date_in_past(days) + "+02:00"
-        end = DateTimeHelper.get_today_midnight() + "+02:00"
+        start = DateTimeHelper.get_date_in_past(days)
+        end = DateTimeHelper.get_today_midnight()
 
-        print("Start:\t{}".format(start))
-        print("End:\t{}".format(end))
+        print("\tStart:\t{}".format(start))
+        print("\tEnd:\t{}".format(end))
 
         auth = (self.togglApiKey, "api_token")
         params = {"start_date": start, "end_date": end}

@@ -91,7 +91,7 @@ class JiraHelper:
             self.jira_api = JIRA(url, basic_auth=(user, passwd))
 
         if simulation:
-            print("JiraHelper is in simulation mode")
+            print(colored("Jira is in simulation mode", Colors.IMPORTANT.value))
 
     @staticmethod
     def round_to_minutes(seconds):
