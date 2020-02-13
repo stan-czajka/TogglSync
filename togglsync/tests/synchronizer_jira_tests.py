@@ -213,6 +213,70 @@ class SynchronizerJiraTests(unittest.TestCase):
             comment="SLUG-987 hard work [toggl#17]",
         )
 
+    def test_sync_single_toggl_update_to_under_1min_clears_worklog(self):
+        jira = JiraHelper(None, None, None, False)
+        jira.get = Mock()
+        jira.delete = Mock()
+        toggl = TogglHelper("url", None)
+        toggl.get = Mock()
+
+        toggl.get.return_value = [
+            TogglEntry(
+                None,
+                29,  # time rounds to under 60 sec
+                "2016-01-01T01:01:01",
+                17,
+                "SLUG-987 hard work",
+                self.jira_config,
+            )
+        ]
+
+        jira.get.return_value = [
+            JiraTimeEntry(
+                222,
+                "2016-05-01T04:02:22",
+                "john doe",
+                1000,
+                "2016-01-01T01:01:01",
+                "SLUG-987",
+                "SLUG-987 hard work [toggl#17]",
+            )
+        ]
+
+        s = Synchronizer(MagicMock(), jira, toggl, None, raise_errors=True)
+        s.start(1)
+
+        jira.delete.assert_called_once_with(222, "SLUG-987")
+
+    def test_sync_skipping_entries_under_1min(self):
+        config = MagicMock()
+        jira = JiraHelper(None, None, None, False)
+        jira.get = Mock()
+        jira.jira_api = Mock()
+        # jira.put = Mock()
+        jira.jira_api.add_worklog = Mock()
+        toggl = TogglHelper("url", None)
+        toggl.get = Mock()
+
+        toggl.get.return_value = [
+            TogglEntry(
+                None,
+                29,  # time rounds to under 60 sec
+                "2016-01-01T01:01:01",
+                17,
+                "SLUG-987 hard work",
+                self.jira_config,
+            )
+        ]
+
+        jira.get.return_value = []
+
+        s = Synchronizer(config, jira, toggl, None, raise_errors=True)
+        s.start(1)
+
+        toggl.get.assert_called_once_with(1)
+        jira.jira_api.add_worklog.assert_not_called()
+
     def test_ignore_negative_duration(self):
         """
         Synchronizer should ignore entries with negative durations (pending entries).

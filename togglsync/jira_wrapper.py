@@ -7,8 +7,9 @@ from getpass import getpass
 import dateutil.parser
 import dateutil.tz
 from jira import JIRA
+from termcolor import colored
 
-from togglsync.config import Config
+from togglsync.config import Config, Colors
 
 
 class JiraTimeEntry:
@@ -90,14 +91,21 @@ class JiraHelper:
             self.jira_api = JIRA(url, basic_auth=(user, passwd))
 
         if simulation:
-            print("JiraHelper is in simulation mode")
+            print(colored("Jira is in simulation mode", Colors.IMPORTANT.value))
 
     @staticmethod
-    def dictFromTogglEntry(togglEntry):
+    def round_to_minutes(seconds):
+        return round(seconds / 60) * 60
+
+    @classmethod
+    def dictFromTogglEntry(cls, togglEntry):
+        # by default Jira truncates time to full minutes (cuts seconds portion of the time)
+        # which creates big difference over a longer period of time
+        rounded_to_minutes = cls.round_to_minutes(togglEntry.seconds)
         return {
             "issueId": togglEntry.taskId,
             "started": togglEntry.start,
-            "seconds": togglEntry.seconds,
+            "seconds": rounded_to_minutes,
             "comment": "{} [toggl#{}]".format(togglEntry.description, togglEntry.id),
         }
 
@@ -114,6 +122,16 @@ class JiraHelper:
     def put(self, issueId, started: datetime, seconds, comment):
         if isinstance(started, str):
             started = dateutil.parser.parse(started)
+        if int(seconds) < 60:
+            print(
+                colored(
+                    "\t\tCan't add entries under 1 min: {}, {}, {}, {}".format(
+                        issueId, str(started), seconds, comment
+                    ),
+                    Colors.ERROR.value,
+                )
+            )
+            return
         if self.simulation:
             print(
                 "\t\tSimulate create of: {}, {}, {}, {}".format(
@@ -131,6 +149,17 @@ class JiraHelper:
         if isinstance(started, str):
             started = dateutil.parser.parse(started)
         started = started.strftime("%Y-%m-%dT%H:%M:%S.000%z")
+        if int(seconds) < 60:
+            print(
+                colored(
+                    "\t\tCan't update entries to under 1 min, deleting instead: {}, {}, {}, {}".format(
+                        issueId, str(started), seconds, comment
+                    ),
+                    Colors.UPDATE.value,
+                )
+            )
+            self.delete(id, issueId)
+            return
 
         if self.simulation:
             print(
@@ -150,15 +179,14 @@ class JiraHelper:
         else:
             worklog = self.jira_api.worklog(issueId, id)
             worklog.delete()
+            print(colored("\t\tDeleted entry for: {}".format(issueId), Colors.UPDATE.value))
 
 
 def get_jira_pass():
     if os.environ.get("TOGGL_JIRA_PASS", None):
         return os.environ["TOGGL_JIRA_PASS"]
     else:
-        return getpass(
-            prompt="Jira password [{}]:".format(config_entry.jira_username)
-        )
+        return getpass(prompt="Jira password [{}]:".format(config_entry.jira_username))
 
 
 if __name__ == "__main__":
@@ -166,11 +194,18 @@ if __name__ == "__main__":
         description="Downloads work logs for given issue (--issue) or adds work log with given time in seconds (--time)"
     )
 
+    default_start_time = datetime.now(dateutil.tz.tzlocal()).isoformat()
     parser.add_argument("-i", "--issue", help="Issue id", required=True, type=str)
     parser.add_argument("-t", "--time", help="Seconds spent")
     parser.add_argument("-c", "--comment", help="Comment")
     parser.add_argument("-u", "--update", help="Worklog id to update")
-    parser.add_argument("-s", "--started", help="Start datetime of worklog", default=datetime.now().isoformat(), type=str)
+    parser.add_argument(
+        "-s",
+        "--started",
+        help="Start datetime of worklog",
+        default=default_start_time,
+        type=str,
+    )
     parser.add_argument("-n", "--num", help="Config entry number", default=0, type=int)
 
     args = parser.parse_args()
