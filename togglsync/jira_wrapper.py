@@ -80,6 +80,28 @@ class JiraTimeEntry:
             jira_issue_id=jiraWorklog.issueId,  # issue.id, not issue.key!
         )
 
+    @classmethod
+    def fromWorklogEmailAddress(cls, jiraWorklog, issue_key):
+        # https://jira.readthedocs.io/en/latest/examples.html#fields
+        # raw datetime value is ISO string, tz-aware, local timezone
+        created_utc = dateutil.parser.parse(jiraWorklog.created).astimezone(
+            dateutil.tz.UTC
+        )
+        started_utc = dateutil.parser.parse(jiraWorklog.started).astimezone(
+            dateutil.tz.UTC
+        )
+
+        return cls(
+            jiraWorklog.id,
+            created_utc.isoformat(),
+            jiraWorklog.author.emailAddress,
+            jiraWorklog.timeSpentSeconds,
+            started_utc.isoformat(),
+            issue_key,  # as worklog.issueId is internal numeric value not issue.key
+            jiraWorklog.comment if hasattr(jiraWorklog, "comment") else None,
+            jira_issue_id=jiraWorklog.issueId,  # issue.id, not issue.key!
+        )
+
 
 class JiraHelper:
     def __init__(self, url, user, passwd, simulation):
@@ -112,8 +134,12 @@ class JiraHelper:
     def get(self, issue_key):
         try:
             for worklog in self.jira_api.worklogs(issue_key):
-                if worklog.author.name == self.user_name:
-                    yield JiraTimeEntry.fromWorklog(worklog, issue_key)
+                try:
+                    if worklog.author.name == self.user_name:
+                        yield JiraTimeEntry.fromWorklog(worklog, issue_key)
+                except:
+                    if worklog.author.emailAddress == self.user_name:
+                        yield JiraTimeEntry.fromWorklogEmailAddress(worklog, issue_key)
         except Exception as exc:
             raise Exception(
                 "Error downloading time entries for {}: {}".format(issue_key, str(exc))
