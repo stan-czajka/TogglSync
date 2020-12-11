@@ -50,6 +50,13 @@ class JiraTimeEntry:
     def secondsToHours(seconds):
         return round(seconds / 3600.0, 2)
 
+    @staticmethod
+    def findUserName(user):
+        try:
+            return user.name
+        except AttributeError:
+            return user.emailAddress
+
     @classmethod
     def findToggleId(cls, comment):
         if comment == None:
@@ -72,29 +79,7 @@ class JiraTimeEntry:
         return cls(
             jiraWorklog.id,
             created_utc.isoformat(),
-            jiraWorklog.author.name,
-            jiraWorklog.timeSpentSeconds,
-            started_utc.isoformat(),
-            issue_key,  # as worklog.issueId is internal numeric value not issue.key
-            jiraWorklog.comment if hasattr(jiraWorklog, "comment") else None,
-            jira_issue_id=jiraWorklog.issueId,  # issue.id, not issue.key!
-        )
-
-    @classmethod
-    def fromWorklogEmailAddress(cls, jiraWorklog, issue_key):
-        # https://jira.readthedocs.io/en/latest/examples.html#fields
-        # raw datetime value is ISO string, tz-aware, local timezone
-        created_utc = dateutil.parser.parse(jiraWorklog.created).astimezone(
-            dateutil.tz.UTC
-        )
-        started_utc = dateutil.parser.parse(jiraWorklog.started).astimezone(
-            dateutil.tz.UTC
-        )
-
-        return cls(
-            jiraWorklog.id,
-            created_utc.isoformat(),
-            jiraWorklog.author.emailAddress,
+            cls.findUserName(jiraWorklog.author),
             jiraWorklog.timeSpentSeconds,
             started_utc.isoformat(),
             issue_key,  # as worklog.issueId is internal numeric value not issue.key
@@ -139,7 +124,7 @@ class JiraHelper:
                         yield JiraTimeEntry.fromWorklog(worklog, issue_key)
                 except:
                     if worklog.author.emailAddress == self.user_name:
-                        yield JiraTimeEntry.fromWorklogEmailAddress(worklog, issue_key)
+                        yield JiraTimeEntry.fromWorklog(worklog, issue_key)
         except Exception as exc:
             raise Exception(
                 "Error downloading time entries for {}: {}".format(issue_key, str(exc))
