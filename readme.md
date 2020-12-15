@@ -1,3 +1,5 @@
+![Test Status](https://github.com/stan-czajka/TogglSync/workflows/Run%20Python%20Tests/badge.svg)
+
 TogglSync
 ===
 
