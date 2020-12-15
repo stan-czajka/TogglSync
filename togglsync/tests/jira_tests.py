@@ -42,6 +42,7 @@ class JiraTimeEntryTests(unittest.TestCase):
         )
         entry = JiraTimeEntry.fromWorklog(stub, "PROJ-1234")
 
+        self.assertTrue(False)
         self.assertEquals("2016-01-01T11:20:00+00:00", entry.created_on)
         self.assertEquals("john", entry.user)
         self.assertEquals(120, entry.seconds)
