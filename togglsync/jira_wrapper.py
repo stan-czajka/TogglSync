@@ -50,6 +50,13 @@ class JiraTimeEntry:
     def secondsToHours(seconds):
         return round(seconds / 3600.0, 2)
 
+    @staticmethod
+    def findUserName(user):
+        try:
+            return user.name
+        except AttributeError:
+            return user.emailAddress
+
     @classmethod
     def findToggleId(cls, comment):
         if comment == None:
@@ -72,7 +79,7 @@ class JiraTimeEntry:
         return cls(
             jiraWorklog.id,
             created_utc.isoformat(),
-            jiraWorklog.author.name,
+            cls.findUserName(jiraWorklog.author),
             jiraWorklog.timeSpentSeconds,
             started_utc.isoformat(),
             issue_key,  # as worklog.issueId is internal numeric value not issue.key
@@ -112,8 +119,12 @@ class JiraHelper:
     def get(self, issue_key):
         try:
             for worklog in self.jira_api.worklogs(issue_key):
-                if worklog.author.name == self.user_name:
-                    yield JiraTimeEntry.fromWorklog(worklog, issue_key)
+                try:
+                    if worklog.author.name == self.user_name:
+                        yield JiraTimeEntry.fromWorklog(worklog, issue_key)
+                except:
+                    if worklog.author.emailAddress == self.user_name:
+                        yield JiraTimeEntry.fromWorklog(worklog, issue_key)
         except Exception as exc:
             raise Exception(
                 "Error downloading time entries for {}: {}".format(issue_key, str(exc))
