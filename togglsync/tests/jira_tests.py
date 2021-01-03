@@ -8,17 +8,20 @@ from togglsync.toggl import TogglEntry
 
 
 class UserStub:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name, cloud_jira=False):
+        if cloud_jira:
+            self.emailAddress = name
+        else:
+            self.name = name
         self.key = name
         self.displayName = name
 
 
 class JiraWorklogStub:
-    def __init__(self, id, created_on, user, seconds, started, issueId, comment):
+    def __init__(self, id, created_on, user, seconds, started, issueId, comment, cloud_jira=False):
         self.id = id
-        self.author = UserStub(user)
-        self.updateAuthor = UserStub(user)
+        self.author = UserStub(user, cloud_jira)
+        self.updateAuthor = UserStub(user, cloud_jira)
         self.comment = comment
         self.created = datetime.isoformat(created_on)
         self.updated = datetime.isoformat(created_on)
@@ -39,6 +42,34 @@ class JiraTimeEntryTests(unittest.TestCase):
             datetime(2016, 3, 1, 10, 38, 0, tzinfo=dateutil.tz.UTC),
             234123,
             "no comment",
+        )
+        entry = JiraTimeEntry.fromWorklog(stub, "PROJ-1234")
+
+        self.assertEquals("2016-01-01T11:20:00+00:00", entry.created_on)
+        self.assertEquals("john", entry.user)
+        self.assertEquals(120, entry.seconds)
+        self.assertEquals("2016-03-01T10:38:00+00:00", entry.spent_on)
+        self.assertEquals("PROJ-1234", entry.issue)
+        self.assertEquals(stub.issueId, entry.jira_issue_id)
+        self.assertEquals(stub.comment, entry.comments)
+        self.assertIsNone(entry.toggl_id)
+
+    def testFindUserName_cloud(self):
+        user = UserStub('tester', True)
+        user_name = JiraTimeEntry.findUserName(user)
+
+        self.assertEqual('tester', user_name)
+
+    def testCreatefromWorklog_cloud(self):
+        stub = JiraWorklogStub(
+            1234,
+            datetime(2016, 1, 1, 11, 20, 0, tzinfo=dateutil.tz.UTC),
+            "john",
+            120,
+            datetime(2016, 3, 1, 10, 38, 0, tzinfo=dateutil.tz.UTC),
+            234123,
+            "no comment",
+            True
         )
         entry = JiraTimeEntry.fromWorklog(stub, "PROJ-1234")
 

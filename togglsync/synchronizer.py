@@ -141,7 +141,7 @@ class Synchronizer:
                 )
             else:
                 # if more found, remove all entries and insert new one
-                self.__remove_entries_in_destination(dest_entries_by_toggl_id)
+                self.__remove_entries_in_destination(dest_entries_by_toggl_id, issueId)
                 self.__insert_entry_in_destination(togglEntry)
 
         print()
@@ -162,9 +162,9 @@ class Synchronizer:
             self.api_helper.update(id=existing_destination_entry.id, **data)
             self.updated += 1
 
-    def __remove_entries_in_destination(self, destination_entries):
+    def __remove_entries_in_destination(self, destination_entries, issueId):
         for e in destination_entries:
-            self.api_helper.delete(e.id)
+            self.api_helper.delete(e.id, issueId)
             print(colored("\tRemoved in destination: {}".format(e), Colors.UPDATE.value))
 
     def _equal(self, toggl_entry, destination_entry):

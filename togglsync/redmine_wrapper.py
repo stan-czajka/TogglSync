@@ -109,7 +109,7 @@ class RedmineHelper:
                 id, issue_id=issueId, spent_on=spentOn, hours=hours, comments=comment
             )
 
-    def delete(self, id):
+    def delete(self, id, **kwargs):
         id = int(id)
         if self.simulation:
             print("\t\tSimulate delete of: {}".format(id))

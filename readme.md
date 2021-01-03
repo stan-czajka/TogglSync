@@ -1,3 +1,5 @@
+![Test Status](https://github.com/stan-czajka/TogglSync/workflows/Run%20Python%20Tests/badge.svg)
+
 TogglSync
 ===
 
@@ -160,3 +162,6 @@ Change log
 - Added colors to console output
 - Added --errors switch and simplified error message 
 - Added example script for OS X 
+
+**0.5.3**
+- Support for worklog from cloud Jira
