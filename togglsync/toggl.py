@@ -106,7 +106,7 @@ class TogglHelper:
         auth = (self.togglApiKey, "api_token")
         params = {"start_date": start, "end_date": end}
 
-        r = requests.get(self.url + "time_entries", auth=auth, params=params)
+        r = requests.get(self.url + "me/time_entries", auth=auth, params=params)
 
         if r.status_code != 200:
             raise Exception("Not expected status code: {}".format(r.status_code))
